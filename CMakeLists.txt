@@ -31,4 +31,12 @@ set_target_properties(token_list PROPERTIES
   COMPILE_FLAGS ${EXAMPLE_CFLAGS})
 target_link_libraries(token_list laxjson)
 
+
+enable_testing()
+add_executable(primitives_test test/primitives.c)
+set_target_properties(primitives_test PROPERTIES
+  COMPILE_FLAGS ${EXAMPLE_CFLAGS})
+target_link_libraries(primitives_test laxjson)
+add_test(DetectPrimitives primitives_test)
+
 install(TARGETS laxjson laxjson_static DESTINATION lib)
