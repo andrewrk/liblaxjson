@@ -216,22 +216,28 @@ static void test_string() {
     lax_json_destroy(context);
 }
 
-int main() {
-    fprintf(stderr, "testing false primitive...");
-    test_false();
-    fprintf(stderr, "OK\n");
+struct Test {
+    const char *name;
+    void (*fn)(void);
+};
 
-    fprintf(stderr, "testing true primitive...");
-    test_true();
-    fprintf(stderr, "OK\n");
+static struct Test tests[] = {
+    {"false primitive", test_false},
+    {"true primitive", test_true},
+    {"null primitive", test_null},
+    {"string primitive", test_string},
+    {NULL, NULL},
+};
 
-    fprintf(stderr, "testing null primitive...");
-    test_null();
-    fprintf(stderr, "OK\n");
+int main(int argc, char *argv[]) {
+    struct Test *test = &tests[0];
 
-    fprintf(stderr, "testing string primitive...");
-    test_string();
-    fprintf(stderr, "OK\n");
+    while (test->name) {
+        fprintf(stderr, "testing %s...", test->name);
+        test->fn();
+        fprintf(stderr, "OK\n");
+        test += 1;
+    }
 
     return 0;
 }
