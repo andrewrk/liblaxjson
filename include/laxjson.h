@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2013 Andrew Kelley
  *
- * This file is part of laxjson, which is MIT licensed.
+ * This file is part of liblaxjson, which is MIT licensed.
  * See http://opensource.org/licenses/MIT
  */
 
