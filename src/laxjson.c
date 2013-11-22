@@ -249,13 +249,13 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     case WHITESPACE:
                         BUFFER_CHAR('\0');
                         context->string(context, LaxJsonTypeProperty, context->value_buffer,
-                                context->value_buffer_index);
+                                context->value_buffer_index - 1);
                         context->state = LaxJsonStateColon;
                         break;
                     case ':':
                         BUFFER_CHAR('\0');
                         context->string(context, LaxJsonTypeProperty, context->value_buffer,
-                                context->value_buffer_index);
+                                context->value_buffer_index - 1);
                         context->state = LaxJsonStateValue;
                         context->string_type = LaxJsonTypeString;
                         PUSH_STATE(LaxJsonStateObject);
@@ -268,7 +268,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                 if (c == context->delim) {
                     BUFFER_CHAR('\0');
                     context->string(context, context->string_type, context->value_buffer,
-                            context->value_buffer_index);
+                            context->value_buffer_index - 1);
                     pop_state(context);
                 } else if (c == '\\') {
                     context->state = LaxJsonStateStringEscape;
