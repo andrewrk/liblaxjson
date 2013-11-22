@@ -70,3 +70,5 @@ cmake ..
 make
 sudo make install
 ```
+
+To run the tests, use `make test`.

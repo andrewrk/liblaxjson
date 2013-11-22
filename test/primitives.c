@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdio.h>
 
+static enum LaxJsonType expected_primitive;
+
 static void on_string_fail(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
@@ -16,17 +18,33 @@ static void on_number_fail(struct LaxJsonContext *context, double x)
     exit(1);
 }
 
-static void on_primitive_is_false(struct LaxJsonContext *context, enum LaxJsonType type)
+static const char *type_to_str(enum LaxJsonType type) {
+    switch (type) {
+        case LaxJsonTypeString:
+            return "string";
+        case LaxJsonTypeProperty:
+            return "property";
+        case LaxJsonTypeNumber:
+            return "number";
+        case LaxJsonTypeObject:
+            return "object";
+        case LaxJsonTypeArray:
+            return "array";
+        case LaxJsonTypeTrue:
+            return "true";
+        case LaxJsonTypeFalse:
+            return "false";
+        case LaxJsonTypeNull:
+            return "null";
+    }
+    exit(1);
+}
+
+static void on_primitive_expect(struct LaxJsonContext *context, enum LaxJsonType type)
 {
-    char *type_name;
-    if (type == LaxJsonTypeTrue)
-        type_name = "true";
-    else if (type == LaxJsonTypeFalse)
-        type_name = "false";
-    else
-        type_name = "null";
-    if (type != LaxJsonTypeFalse) {
-        fprintf(stderr, "expected false, got %s\n", type_name);
+    if (type != expected_primitive) {
+        fprintf(stderr, "expected %s, got %s\n", type_to_str(expected_primitive),
+                type_to_str(type));
         exit(1);
     }
 }
@@ -55,11 +73,38 @@ static void test_false() {
     context->userdata = NULL; /* can set this to whatever you want */
     context->string = on_string_fail;
     context->number = on_number_fail;
-    context->primitive = on_primitive_is_false;
+    expected_primitive = LaxJsonTypeFalse;
+    context->primitive = on_primitive_expect;
     context->begin = on_begin_fail;
     context->end = on_end_fail;
 
-    input = "false";
+    input = "// this is a comment\n"
+            " false";
+    size = strlen(input);
+
+    lax_json_feed(context, size, input);
+
+    lax_json_destroy(context);
+}
+
+static void test_true() {
+    struct LaxJsonContext *context;
+    char *input;
+    int size;
+    
+    context = lax_json_create();
+    if (!context)
+        exit(1);
+
+    context->userdata = NULL; /* can set this to whatever you want */
+    context->string = on_string_fail;
+    context->number = on_number_fail;
+    expected_primitive = LaxJsonTypeTrue;
+    context->primitive = on_primitive_expect;
+    context->begin = on_begin_fail;
+    context->end = on_end_fail;
+
+    input = " /* before comment */true";
     size = strlen(input);
 
     lax_json_feed(context, size, input);
@@ -69,8 +114,8 @@ static void test_false() {
 
 int main() {
     test_false();
-    /*test_true();
-    test_null();
+    test_true();
+    /*test_null();
     test_string();*/
 
     return 0;
