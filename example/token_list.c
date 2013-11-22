@@ -50,7 +50,7 @@ int main() {
     struct LaxJsonContext *context;
     FILE *f;
     int amt_read;
-    
+
     context = lax_json_create();
 
     context->userdata = NULL; /* can set this to whatever you want */
