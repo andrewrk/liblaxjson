@@ -175,7 +175,7 @@ static enum LaxJsonError buffer_char(struct LaxJsonContext *context, char c) {
     return LaxJsonErrorNone;
 }
 
-enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, char *data) {
+enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const char *data) {
 #define PUSH_STATE(state) \
     err = push_state(context, state); \
     if (err) return err;
@@ -185,7 +185,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, char *
 
     enum LaxJsonError err = LaxJsonErrorNone;
     int x;
-    char *end;
+    const char *end;
     char c;
     for (end = data + size; data < end; data += 1) {
         c = *data;

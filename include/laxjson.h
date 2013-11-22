@@ -92,6 +92,6 @@ struct LaxJsonContext {
 struct LaxJsonContext *lax_json_create(void);
 void lax_json_destroy(struct LaxJsonContext *context);
 
-enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, char *data);
+enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const char *data);
 
 #endif /* LAXJSON_H_INCLUDED */

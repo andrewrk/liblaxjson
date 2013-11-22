@@ -5,6 +5,43 @@
 
 static enum LaxJsonType expected_primitive;
 
+static const char *err_to_str(enum LaxJsonError err) {
+    switch(err) {
+        case LaxJsonErrorNone:
+            return "";
+        case LaxJsonErrorUnexpectedChar:
+            return "unexpected char";
+        case LaxJsonErrorExpectedEof:
+            return "expected EOF";
+        case LaxJsonErrorExceededMaxStack:
+            return "exceeded max stack";
+        case LaxJsonErrorNoMem:
+            return "no mem";
+        case LaxJsonErrorExceededMaxValueSize:
+            return "exceeded max value size";
+        case LaxJsonErrorInvalidHexDigit:
+            return "invalid hex digit";
+        case LaxJsonErrorInvalidUnicodePoint:
+            return "invalid unicode point";
+        case LaxJsonErrorExpectedColon:
+            return "expected colon";
+    }
+    exit(1);
+}
+
+static void feed(struct LaxJsonContext *context, const char *data) {
+    int size = strlen(data);
+
+    enum LaxJsonError err = lax_json_feed(context, size, data);
+
+    if (!err)
+        return;
+
+    fprintf(stderr, "line %d column %d parse error: %s\n", context->line,
+            context->column, err_to_str(err));
+    exit(1);
+}
+
 static void on_string_fail(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
@@ -63,14 +100,12 @@ static void on_end_fail(struct LaxJsonContext *context, enum LaxJsonType type)
 
 static void test_false() {
     struct LaxJsonContext *context;
-    char *input;
-    int size;
     
     context = lax_json_create();
     if (!context)
         exit(1);
 
-    context->userdata = NULL; /* can set this to whatever you want */
+    context->userdata = NULL;
     context->string = on_string_fail;
     context->number = on_number_fail;
     expected_primitive = LaxJsonTypeFalse;
@@ -78,25 +113,22 @@ static void test_false() {
     context->begin = on_begin_fail;
     context->end = on_end_fail;
 
-    input = "// this is a comment\n"
-            " false";
-    size = strlen(input);
-
-    lax_json_feed(context, size, input);
+    feed(context,
+        "// this is a comment\n"
+        " false"
+        );
 
     lax_json_destroy(context);
 }
 
 static void test_true() {
     struct LaxJsonContext *context;
-    char *input;
-    int size;
     
     context = lax_json_create();
     if (!context)
         exit(1);
 
-    context->userdata = NULL; /* can set this to whatever you want */
+    context->userdata = NULL;
     context->string = on_string_fail;
     context->number = on_number_fail;
     expected_primitive = LaxJsonTypeTrue;
@@ -104,10 +136,31 @@ static void test_true() {
     context->begin = on_begin_fail;
     context->end = on_end_fail;
 
-    input = " /* before comment */true";
-    size = strlen(input);
+    feed(context,
+        " /* before comment */true"
+        );
 
-    lax_json_feed(context, size, input);
+    lax_json_destroy(context);
+}
+
+static void test_null() {
+    struct LaxJsonContext *context;
+    
+    context = lax_json_create();
+    if (!context)
+        exit(1);
+
+    context->userdata = NULL;
+    context->string = on_string_fail;
+    context->number = on_number_fail;
+    expected_primitive = LaxJsonTypeNull;
+    context->primitive = on_primitive_expect;
+    context->begin = on_begin_fail;
+    context->end = on_end_fail;
+
+    feed(context,
+        "null/* after comment*/ // line comment"
+        );
 
     lax_json_destroy(context);
 }
@@ -115,8 +168,8 @@ static void test_true() {
 int main() {
     test_false();
     test_true();
-    /*test_null();
-    test_string();*/
+    test_null();
+    /*test_string();*/
 
     return 0;
 }
