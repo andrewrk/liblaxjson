@@ -509,6 +509,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         PUSH_STATE(LaxJsonStateArray);
                         break;
                     case ']':
+                        context->end(context, LaxJsonTypeArray);
                         pop_state(context);
                         break;
                     default:
@@ -530,6 +531,19 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         BUFFER_CHAR(c);
                         context->state = LaxJsonStateNumberDecimal;
                         break;
+                    case ',':
+                    case WHITESPACE:
+                    case ']':
+                    case '}':
+                    case '/':
+                        BUFFER_CHAR('\0');
+                        context->number(context, atof(context->value_buffer));
+                        pop_state(context);
+
+                        /* rewind 1 */
+                        data -= 1;
+                        context->column -= 1;
+                        continue;
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
@@ -564,7 +578,11 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     case DIGIT:
                         BUFFER_CHAR(c);
                         break;
-                    default:
+                    case ',':
+                    case WHITESPACE:
+                    case ']':
+                    case '}':
+                    case '/':
                         BUFFER_CHAR('\0');
                         context->number(context, atof(context->value_buffer));
                         pop_state(context);
@@ -573,6 +591,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         data -= 1;
                         context->column -= 1;
                         continue;
+                    default:
+                        return LaxJsonErrorUnexpectedChar;
                 }
                 break;
             case LaxJsonStateExpect:

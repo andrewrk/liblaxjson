@@ -83,12 +83,12 @@ static void on_string_build(struct LaxJsonContext *context,
 
 static void on_number_build(struct LaxJsonContext *context, double x)
 {
-    out_buf_index += snprintf(&out_buf[out_buf_index], 30, "number\n%g\n", x);
+    out_buf_index += snprintf(&out_buf[out_buf_index], 30, "number %g\n", x);
 }
 
 static void on_primitive_build(struct LaxJsonContext *context, enum LaxJsonType type)
 {
-    out_buf_index += snprintf(&out_buf[out_buf_index], 50, "primitive\n%s\n", type_to_str(type));
+    out_buf_index += snprintf(&out_buf[out_buf_index], 50, "%s\n", type_to_str(type));
 }
 
 static void on_begin_build(struct LaxJsonContext *context, enum LaxJsonType type)
@@ -152,7 +152,6 @@ static void test_false() {
         );
 
     check_build(context,
-            "primitive\n"
             "false\n"
             );
 }
@@ -165,7 +164,6 @@ static void test_true() {
         );
 
     check_build(context,
-            "primitive\n"
             "true\n"
             );
 }
@@ -178,7 +176,6 @@ static void test_null() {
         );
 
     check_build(context,
-            "primitive\n"
             "null\n"
             );
 }
@@ -292,9 +289,25 @@ static void test_float_value() {
             "begin object\n"
             "property\n"
             "PI\n"
-            "number\n"
-            "3.141e-10\n"
+            "number 3.141e-10\n"
             "end object\n"
+            );
+}
+
+static void test_simple_digit_array() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+            "[ 1,2,3,4]"
+            );
+
+    check_build(context,
+            "begin array\n"
+            "number 1\n"
+            "number 2\n"
+            "number 3\n"
+            "number 4\n"
+            "end array\n"
             );
 }
 
@@ -311,6 +324,7 @@ static struct Test tests[] = {
     {"basic json", test_basic_json},
     {"empty object", test_empty_object},
     {"float value", test_float_value},
+    {"simple digit array", test_simple_digit_array},
     {NULL, NULL},
 };
 
