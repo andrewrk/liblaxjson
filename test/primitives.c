@@ -6,6 +6,16 @@
 static enum LaxJsonType expected_type;
 static const char *expected_string;
 
+static char out_buf[16384];
+static int out_buf_index;
+
+static void add_buf(const char *str, int len) {
+    if (len == 0)
+        len = strlen(str);
+    memcpy(&out_buf[out_buf_index], str, len);
+    out_buf_index += len;
+}
+
 static const char *err_to_str(enum LaxJsonError err) {
     switch(err) {
         case LaxJsonErrorNone:
@@ -72,6 +82,15 @@ static void on_string_fail(struct LaxJsonContext *context,
     exit(1);
 }
 
+static void on_string_build(struct LaxJsonContext *context,
+    enum LaxJsonType type, const char *value, int length)
+{
+    add_buf(type_to_str(type), 0);
+    add_buf("\n", 0);
+    add_buf(value, length);
+    add_buf("\n", 0);
+}
+
 static void on_string_expect(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
@@ -93,10 +112,21 @@ static void on_string_expect(struct LaxJsonContext *context,
     }
 }
 
+static void on_number_build(struct LaxJsonContext *context, double x)
+{
+    out_buf_index += snprintf(&out_buf[out_buf_index], 20, "%f\n", x);
+}
+
 static void on_number_fail(struct LaxJsonContext *context, double x)
 {
     fprintf(stderr, "unexpected number\n");
     exit(1);
+}
+
+static void on_primitive_build(struct LaxJsonContext *context, enum LaxJsonType type)
+{
+    add_buf(type_to_str(type), 0);
+    add_buf("\n", 0);
 }
 
 static void on_primitive_expect(struct LaxJsonContext *context, enum LaxJsonType type)
@@ -114,10 +144,20 @@ static void on_primitive_fail(struct LaxJsonContext *context, enum LaxJsonType t
     exit(1);
 }
 
+static void on_begin_build(struct LaxJsonContext *context, enum LaxJsonType type)
+{
+    out_buf_index += snprintf(&out_buf[out_buf_index], 50, "begin %s\n", type_to_str(type));
+}
+
 static void on_begin_fail(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     fprintf(stderr, "unexpected array or object\n");
     exit(1);
+}
+
+static void on_end_build(struct LaxJsonContext *context, enum LaxJsonType type)
+{
+    out_buf_index += snprintf(&out_buf[out_buf_index], 50, "end %s\n", type_to_str(type));
 }
 
 static void on_end_fail(struct LaxJsonContext *context, enum LaxJsonType type)
@@ -216,6 +256,117 @@ static void test_string() {
     lax_json_destroy(context);
 }
 
+static struct LaxJsonContext *init_for_build(void) {
+    struct LaxJsonContext *context = lax_json_create();
+    if (!context)
+        exit(1);
+
+    out_buf_index = 0;
+
+    context->userdata = NULL;
+    context->string = on_string_build;
+    context->number = on_number_build;
+    context->primitive = on_primitive_build;
+    context->begin = on_begin_build;
+    context->end = on_end_build;
+
+    return context;
+}
+
+static void check_build(struct LaxJsonContext *context, const char *output) {
+    int expected_len = strlen(output);
+    if (out_buf_index != expected_len) {
+        fprintf(stderr, "\n"
+                "EXPECTED:\n"
+                "---------\n"
+                "%s\n"
+                "RECEIVED:\n"
+                "---------\n"
+                "%s\n", output, out_buf);
+        exit(1);
+    }
+    if (memcmp(output, out_buf, expected_len) != 0) {
+        fprintf(stderr,
+                "EXPECTED:\n"
+                "---------\n"
+                "%s\n"
+                "RECEIVED:\n"
+                "---------\n"
+                "%s\n", output, out_buf);
+        exit(1);
+    }
+    lax_json_destroy(context);
+}
+
+static void test_basic_json() {
+    struct LaxJsonContext *context;
+
+    context = init_for_build();
+
+    feed(context,
+        "// comments are OK :)\n"
+        "// single quotes, double quotes, and no quotes are OK\n"
+        "{\n"
+        "  textures: {\n"
+        "    cockpit: {\n"
+        "      images: {\n"
+        "        arrow: {\n"
+        "          path: \"img/arrow.png\",\n"
+        "          anchor: \"left\"\n"
+        "        },"
+        "        'radar-circle': {\n"
+        "          path: \"img/radar-circle.png\",\n"
+        "          anchor: \"center\"\n"
+        "        }\n"
+        "      }\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+        );
+
+    check_build(
+            context,
+            "begin object\n"
+            "property\n"
+            "textures\n"
+            "begin object\n"
+            "property\n"
+            "cockpit\n"
+            "begin object\n"
+            "property\n"
+            "images\n"
+            "begin object\n"
+            "property\n"
+            "arrow\n"
+            "begin object\n"
+            "property\n"
+            "path\n"
+            "string\n"
+            "img/arrow.png\n"
+            "property\n"
+            "anchor\n"
+            "string\n"
+            "left\n"
+            "end object\n"
+            "property\n"
+            "radar-circle\n"
+            "begin object\n"
+            "property\n"
+            "path\n"
+            "string\n"
+            "img/radar-circle.png\n"
+            "property\n"
+            "anchor\n"
+            "string\n"
+            "center\n"
+            "end object\n"
+            "end object\n"
+            "end object\n"
+            "end object\n"
+            "end object\n"
+            );
+}
+
 struct Test {
     const char *name;
     void (*fn)(void);
@@ -226,6 +377,7 @@ static struct Test tests[] = {
     {"true primitive", test_true},
     {"null primitive", test_null},
     {"string primitive", test_string},
+    {"basic json", test_basic_json},
     {NULL, NULL},
 };
 

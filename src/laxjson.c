@@ -104,14 +104,39 @@
     case '+': \
     case '*': \
     case '(': \
-    case ')'
+    case ')': \
+    case ALPHANUMERIC
     
 
 static const int HEX_MULT[] = {4096, 256, 16, 1};
 
+/*
+static const char *STATE_NAMES[] = {
+    "LaxJsonStateValue",
+    "LaxJsonStateObject",
+    "LaxJsonStateArray",
+    "LaxJsonStateString",
+    "LaxJsonStateStringEscape",
+    "LaxJsonStateUnicodeEscape",
+    "LaxJsonStateBareProp",
+    "LaxJsonStateCommentBegin",
+    "LaxJsonStateCommentLine",
+    "LaxJsonStateCommentMultiLine",
+    "LaxJsonStateCommentMultiLineStar",
+    "LaxJsonStateExpect",
+    "LaxJsonStateEnd",
+    "LaxJsonStateColon",
+    "LaxJsonStateNumber",
+    "LaxJsonStateNumberDecimal",
+    "LaxJsonStateNumberExponent",
+    "LaxJsonStateNumberExponentSig"
+};
+*/
+
 static enum LaxJsonError push_state(struct LaxJsonContext *context, enum LaxJsonState state) {
     enum LaxJsonState *new_ptr;
 
+    /*fprintf(stderr, "push state %s\n", STATE_NAMES[state]);*/
     if (context->state_stack_index >= context->state_stack_size) {
         context->state_stack_size += 1024;
         if (context->state_stack_size > context->max_state_stack_size)
@@ -154,8 +179,8 @@ void lax_json_destroy(struct LaxJsonContext *context) {
 }
 
 static void pop_state(struct LaxJsonContext *context) {
-    context->state = context->state_stack[context->state_stack_index];
     context->state_stack_index -= 1;
+    context->state = context->state_stack[context->state_stack_index];
     assert(context->state_stack_index >= 0);
 }
 
@@ -191,10 +216,12 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
         c = *data;
         if (c == '\n') {
             context->line += 1;
-            context->column = 1;
+            context->column = 0;
         } else {
             context->column += 1;
         }
+        /*fprintf(stderr, "line %d col %d state %s char %c\n", context->line, context->column,
+                  STATE_NAMES[context->state], c); */
         switch (context->state) {
             case LaxJsonStateEnd:
                 switch (c) {
