@@ -324,8 +324,7 @@ static void test_basic_json() {
         "}\n"
         );
 
-    check_build(
-            context,
+    check_build(context,
             "begin object\n"
             "property\n"
             "textures\n"
@@ -367,6 +366,19 @@ static void test_basic_json() {
             );
 }
 
+static void test_empty_object() {
+    struct LaxJsonContext *context;
+
+    context = init_for_build();
+
+    feed(context, "{}");
+
+    check_build(context,
+            "begin object\n"
+            "end object\n"
+            );
+}
+
 struct Test {
     const char *name;
     void (*fn)(void);
@@ -378,6 +390,7 @@ static struct Test tests[] = {
     {"null primitive", test_null},
     {"string primitive", test_string},
     {"basic json", test_basic_json},
+    {"empty object", test_empty_object},
     {NULL, NULL},
 };
 
