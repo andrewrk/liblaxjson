@@ -114,7 +114,7 @@ static void on_string_expect(struct LaxJsonContext *context,
 
 static void on_number_build(struct LaxJsonContext *context, double x)
 {
-    out_buf_index += snprintf(&out_buf[out_buf_index], 20, "%f\n", x);
+    out_buf_index += snprintf(&out_buf[out_buf_index], 30, "number\n%g\n", x);
 }
 
 static void on_number_fail(struct LaxJsonContext *context, double x)
@@ -379,6 +379,27 @@ static void test_empty_object() {
             );
 }
 
+static void test_float_value() {
+    struct LaxJsonContext *context;
+
+    context = init_for_build();
+
+    feed(context,
+            "{\n"
+            "\"PI\": 3.141E-10"
+            "}"
+            );
+
+    check_build(context,
+            "begin object\n"
+            "property\n"
+            "PI\n"
+            "number\n"
+            "3.141e-10\n"
+            "end object\n"
+            );
+}
+
 struct Test {
     const char *name;
     void (*fn)(void);
@@ -391,6 +412,7 @@ static struct Test tests[] = {
     {"string primitive", test_string},
     {"basic json", test_basic_json},
     {"empty object", test_empty_object},
+    {"float value", test_float_value},
     {NULL, NULL},
 };
 

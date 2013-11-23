@@ -129,14 +129,14 @@ static const char *STATE_NAMES[] = {
     "LaxJsonStateNumber",
     "LaxJsonStateNumberDecimal",
     "LaxJsonStateNumberExponent",
-    "LaxJsonStateNumberExponentSig"
+    "LaxJsonStateNumberExponentSign"
 };
 */
 
 static enum LaxJsonError push_state(struct LaxJsonContext *context, enum LaxJsonState state) {
     enum LaxJsonState *new_ptr;
 
-    /*fprintf(stderr, "push state %s\n", STATE_NAMES[state]);*/
+    /* fprintf(stderr, "push state %s\n", STATE_NAMES[state]); */
     if (context->state_stack_index >= context->state_stack_size) {
         context->state_stack_size += 1024;
         if (context->state_stack_size > context->max_state_stack_size)
@@ -220,7 +220,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
         } else {
             context->column += 1;
         }
-        /*fprintf(stderr, "line %d col %d state %s char %c\n", context->line, context->column,
+        /* fprintf(stderr, "line %d col %d state %s char %c\n", context->line, context->column,
                   STATE_NAMES[context->state], c); */
         switch (context->state) {
             case LaxJsonStateEnd:
@@ -558,6 +558,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
+                break;
             case LaxJsonStateNumberExponent:
                 switch (c) {
                     case DIGIT:
@@ -573,6 +574,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         context->column -= 1;
                         continue;
                 }
+                break;
             case LaxJsonStateExpect:
                 if (c == *context->expected) {
                     context->expected += 1;
