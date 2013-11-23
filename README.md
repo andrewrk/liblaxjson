@@ -1,6 +1,15 @@
 # Relaxed Streaming JSON Parser C Library
 
+## Differences from RFC 4627
+
+ * unquoted keys
+ * single quotes `'`
+ * `//` and `/* */` style comments
+ * extra commas `,` in arrays and objects
+
 ## Usage
+
+See include/laxjson.h for more details.
 
 ```c
 #include <laxjson.h>

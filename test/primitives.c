@@ -393,6 +393,24 @@ static void test_unclosed_value() {
             , LaxJsonErrorUnexpectedEof, 3, 0);
 }
 
+static void test_unicode_text() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+            "{ \"v\":\"\\u2000\\u20ff\"}"
+            );
+
+    check_build(context,
+            "begin object\n"
+            "property\n"
+            "v\n"
+            "string\n"
+            "\xe2\x80\x80\xe2\x83\xbf\n"
+            "end object\n"
+            );
+}
+
+
 struct Test {
     const char *name;
     void (*fn)(void);
@@ -410,6 +428,7 @@ static struct Test tests[] = {
     {"simple string array", test_simple_string_array},
     {"array of empty object", test_array_of_empty_object},
     {"unclosed value", test_unclosed_value},
+    {"unicode text", test_unicode_text},
     {NULL, NULL},
 };
 

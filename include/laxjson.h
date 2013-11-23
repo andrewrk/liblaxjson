@@ -82,8 +82,8 @@ struct LaxJsonContext {
     int value_buffer_index;
     int value_buffer_size;
 
-    int unicode_point;
-    int unicode_digit_index;
+    unsigned int unicode_point;
+    unsigned int unicode_digit_index;
 
     char *expected;
     char delim;

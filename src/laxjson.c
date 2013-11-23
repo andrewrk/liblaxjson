@@ -154,14 +154,23 @@ static enum LaxJsonError push_state(struct LaxJsonContext *context, enum LaxJson
 struct LaxJsonContext *lax_json_create(void) {
     struct LaxJsonContext *context = calloc(1, sizeof(struct LaxJsonContext));
 
+    if (!context)
+        return NULL;
+
     context->value_buffer_size = 1024;
     context->value_buffer = malloc(context->value_buffer_size);
-    /* TODO handle malloc returning NULL */
-    if (!context->value_buffer) abort();
+
+    if (!context->value_buffer) {
+        lax_json_destroy(context);
+        return NULL;
+    }
 
     context->state_stack_size = 1024;
     context->state_stack = malloc(context->state_stack_size);
-    if (!context->state_stack) abort();
+    if (!context->state_stack) {
+        lax_json_destroy(context);
+        return NULL;
+    }
 
     context->line = 1;
     context->max_state_stack_size = 16384;
@@ -212,6 +221,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
     int x;
     const char *end;
     char c;
+    unsigned char byte;
     for (end = data + size; data < end; data += 1) {
         c = *data;
         if (c == '\n') {
@@ -396,32 +406,63 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                 context->unicode_digit_index += 1;
                 if (context->unicode_digit_index == 4) {
                     if (context->unicode_point <= 0x007f) {
-                        /* 1 byte ascii */
+                        /* 1 byte */
                         BUFFER_CHAR((char)context->unicode_point);
                         context->state = LaxJsonStateString;
                     } else if (context->unicode_point <= 0x07ff) {
                         /* 2 bytes */
-                        /* TODO */
-                        abort();
+                        byte = (0xc0 | (context->unicode_point >> 6));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | (context->unicode_point & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
                     } else if (context->unicode_point <= 0xffff) {
                         /* 3 bytes */
-                        /* TODO */
-                        abort();
+                        byte = (0xe0 | (context->unicode_point >> 12));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | (context->unicode_point & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
                     } else if (context->unicode_point <= 0x1fffff) {
                         /* 4 bytes */
-                        /* TODO */
-                        abort();
+                        byte = (0xf0 | (context->unicode_point >> 18));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 12) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | (context->unicode_point & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
                     } else if (context->unicode_point <= 0x3ffffff) {
                         /* 5 bytes */
-                        /* TODO */
-                        abort();
+                        byte = (0xf8 | (context->unicode_point >> 24));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | (context->unicode_point >> 18));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 12) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | (context->unicode_point & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
                     } else if (context->unicode_point <= 0x7fffffff) {
                         /* 6 bytes */
-                        /* TODO */
-                        abort();
+                        byte = (0xfc | (context->unicode_point >> 30));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 24) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 18) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 12) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
+                        byte = (0x80 | (context->unicode_point & 0x3f));
+                        BUFFER_CHAR(*(char *)(&byte));
                     } else {
                         return LaxJsonErrorInvalidUnicodePoint;
                     }
+                    context->state = LaxJsonStateString;
                 }
                 break;
             case LaxJsonStateColon:
