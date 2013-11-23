@@ -39,4 +39,5 @@ set_target_properties(primitives_test PROPERTIES
 target_link_libraries(primitives_test laxjson)
 add_test(DetectPrimitives primitives_test)
 
+install(FILES "include/laxjson.h" DESTINATION include)
 install(TARGETS laxjson laxjson_static DESTINATION lib)
