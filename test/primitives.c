@@ -3,9 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-static enum LaxJsonType expected_type;
-static const char *expected_string;
-
 static char out_buf[16384];
 static int out_buf_index;
 
@@ -75,13 +72,6 @@ static void feed(struct LaxJsonContext *context, const char *data) {
     exit(1);
 }
 
-static void on_string_fail(struct LaxJsonContext *context,
-    enum LaxJsonType type, const char *value, int length)
-{
-    fprintf(stderr, "unexpected string\n");
-    exit(1);
-}
-
 static void on_string_build(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
@@ -91,57 +81,14 @@ static void on_string_build(struct LaxJsonContext *context,
     add_buf("\n", 0);
 }
 
-static void on_string_expect(struct LaxJsonContext *context,
-    enum LaxJsonType type, const char *value, int length)
-{
-    int expected_len;
-    if (type != expected_type) {
-        fprintf(stderr, "got type: %s expected type: %s\n", type_to_str(type),
-                type_to_str(expected_type));
-        exit(1);
-    }
-    expected_len = strlen(expected_string);
-    if (length != expected_len) {
-        fprintf(stderr, "got string length: %d expected length: %d\n",
-                length, expected_len);
-        exit(1);
-    }
-    if (memcmp(value, expected_string, length) != 0) {
-        fprintf(stderr, "expected %s, got %s\n", expected_string, value);
-        exit(1);
-    }
-}
-
 static void on_number_build(struct LaxJsonContext *context, double x)
 {
     out_buf_index += snprintf(&out_buf[out_buf_index], 30, "number\n%g\n", x);
 }
 
-static void on_number_fail(struct LaxJsonContext *context, double x)
-{
-    fprintf(stderr, "unexpected number\n");
-    exit(1);
-}
-
 static void on_primitive_build(struct LaxJsonContext *context, enum LaxJsonType type)
 {
-    add_buf(type_to_str(type), 0);
-    add_buf("\n", 0);
-}
-
-static void on_primitive_expect(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    if (type != expected_type) {
-        fprintf(stderr, "expected %s, got %s\n", type_to_str(expected_type),
-                type_to_str(type));
-        exit(1);
-    }
-}
-
-static void on_primitive_fail(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    fprintf(stderr, "unexpected primitive: %s\n", type_to_str(type));
-    exit(1);
+    out_buf_index += snprintf(&out_buf[out_buf_index], 50, "primitive\n%s\n", type_to_str(type));
 }
 
 static void on_begin_build(struct LaxJsonContext *context, enum LaxJsonType type)
@@ -149,128 +96,9 @@ static void on_begin_build(struct LaxJsonContext *context, enum LaxJsonType type
     out_buf_index += snprintf(&out_buf[out_buf_index], 50, "begin %s\n", type_to_str(type));
 }
 
-static void on_begin_fail(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    fprintf(stderr, "unexpected array or object\n");
-    exit(1);
-}
-
 static void on_end_build(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     out_buf_index += snprintf(&out_buf[out_buf_index], 50, "end %s\n", type_to_str(type));
-}
-
-static void on_end_fail(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    fprintf(stderr, "unexpected end of array or object\n");
-    exit(1);
-}
-
-static void test_false() {
-    struct LaxJsonContext *context;
-    
-    context = lax_json_create();
-    if (!context)
-        exit(1);
-
-    context->userdata = NULL;
-    context->string = on_string_fail;
-    context->number = on_number_fail;
-    expected_type = LaxJsonTypeFalse;
-    context->primitive = on_primitive_expect;
-    context->begin = on_begin_fail;
-    context->end = on_end_fail;
-
-    feed(context,
-        "// this is a comment\n"
-        " false"
-        );
-
-    lax_json_destroy(context);
-}
-
-static void test_true() {
-    struct LaxJsonContext *context;
-    
-    context = lax_json_create();
-    if (!context)
-        exit(1);
-
-    context->userdata = NULL;
-    context->string = on_string_fail;
-    context->number = on_number_fail;
-    expected_type = LaxJsonTypeTrue;
-    context->primitive = on_primitive_expect;
-    context->begin = on_begin_fail;
-    context->end = on_end_fail;
-
-    feed(context,
-        " /* before comment */true"
-        );
-
-    lax_json_destroy(context);
-}
-
-static void test_null() {
-    struct LaxJsonContext *context;
-    
-    context = lax_json_create();
-    if (!context)
-        exit(1);
-
-    context->userdata = NULL;
-    context->string = on_string_fail;
-    context->number = on_number_fail;
-    expected_type = LaxJsonTypeNull;
-    context->primitive = on_primitive_expect;
-    context->begin = on_begin_fail;
-    context->end = on_end_fail;
-
-    feed(context,
-        "null/* after comment*/ // line comment"
-        );
-
-    lax_json_destroy(context);
-}
-
-static void test_string() {
-    struct LaxJsonContext *context;
-    
-    context = lax_json_create();
-    if (!context)
-        exit(1);
-
-    context->userdata = NULL;
-    expected_string = "foo";
-    expected_type = LaxJsonTypeString;
-    context->string = on_string_expect;
-    context->number = on_number_fail;
-    context->primitive = on_primitive_fail;
-    context->begin = on_begin_fail;
-    context->end = on_end_fail;
-
-    feed(context,
-        "\"foo\""
-        );
-
-    lax_json_destroy(context);
-}
-
-static struct LaxJsonContext *init_for_build(void) {
-    struct LaxJsonContext *context = lax_json_create();
-    if (!context)
-        exit(1);
-
-    out_buf_index = 0;
-
-    context->userdata = NULL;
-    context->string = on_string_build;
-    context->number = on_number_build;
-    context->primitive = on_primitive_build;
-    context->begin = on_begin_build;
-    context->end = on_end_build;
-
-    return context;
 }
 
 static void check_build(struct LaxJsonContext *context, const char *output) {
@@ -296,6 +124,76 @@ static void check_build(struct LaxJsonContext *context, const char *output) {
         exit(1);
     }
     lax_json_destroy(context);
+}
+
+static struct LaxJsonContext *init_for_build(void) {
+    struct LaxJsonContext *context = lax_json_create();
+    if (!context)
+        exit(1);
+
+    out_buf_index = 0;
+
+    context->userdata = NULL;
+    context->string = on_string_build;
+    context->number = on_number_build;
+    context->primitive = on_primitive_build;
+    context->begin = on_begin_build;
+    context->end = on_end_build;
+
+    return context;
+}
+
+static void test_false() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+        "// this is a comment\n"
+        " false"
+        );
+
+    check_build(context,
+            "primitive\n"
+            "false\n"
+            );
+}
+
+static void test_true() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+        " /* before comment */true"
+        );
+
+    check_build(context,
+            "primitive\n"
+            "true\n"
+            );
+}
+
+static void test_null() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+        "null/* after comment*/ // line comment"
+        );
+
+    check_build(context,
+            "primitive\n"
+            "null\n"
+            );
+}
+
+static void test_string() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+        "\"foo\""
+        );
+
+    check_build(context,
+            "string\n"
+            "foo\n"
+            );
 }
 
 static void test_basic_json() {
