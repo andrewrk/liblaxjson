@@ -635,3 +635,17 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
     }
     return err;
 }
+
+enum LaxJsonError lax_json_eof(struct LaxJsonContext *context) {
+    for (;;) {
+        switch (context->state) {
+            case LaxJsonStateEnd:
+                return LaxJsonErrorNone;
+            case LaxJsonStateCommentLine:
+                pop_state(context);
+                continue;
+            default:
+                return LaxJsonErrorUnexpectedEof;
+        }
+    }
+}

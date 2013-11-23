@@ -33,6 +33,8 @@ static const char *err_to_str(enum LaxJsonError err) {
             return "invalid unicode point";
         case LaxJsonErrorExpectedColon:
             return "expected colon";
+        case LaxJsonErrorUnexpectedEof:
+            return "unexpected EOF";
     }
     exit(1);
 }
@@ -103,6 +105,11 @@ static void on_end_build(struct LaxJsonContext *context, enum LaxJsonType type)
 
 static void check_build(struct LaxJsonContext *context, const char *output) {
     int expected_len = strlen(output);
+    enum LaxJsonError err = lax_json_eof(context);
+    if (err != LaxJsonErrorNone) {
+        fprintf(stderr, "%s\n", err_to_str(err));
+        exit(1);
+    }
     if (out_buf_index != expected_len) {
         fprintf(stderr, "\n"
                 "EXPECTED:\n"
@@ -142,6 +149,34 @@ static struct LaxJsonContext *init_for_build(void) {
 
     return context;
 }
+
+static void check_error(const char *input, enum LaxJsonError error, int line, int col) {
+    struct LaxJsonContext *context = init_for_build();
+
+    int size = strlen(input);
+    enum LaxJsonError err = lax_json_feed(context, size, input);
+
+    if (err == LaxJsonErrorNone)
+        err = lax_json_eof(context);
+
+    if (err != error) {
+        fprintf(stderr, "Expected %s, received %s\n", err_to_str(error), err_to_str(err));
+        exit(1);
+    }
+
+    if (context->line != line) {
+        fprintf(stderr, "Expected error line %d, received error line %d\n", line, context->line);
+        exit(1);
+    }
+
+    if (context->column != col) {
+        fprintf(stderr, "Expected error column %d, received error column %d\n", col, context->column);
+        exit(1);
+    }
+
+    lax_json_destroy(context);
+}
+
 
 static void test_false() {
     struct LaxJsonContext *context = init_for_build();
@@ -351,6 +386,13 @@ static void test_array_of_empty_object() {
             );
 }
 
+static void test_unclosed_value() {
+    check_error(
+            "{ foo: \"value\n"
+            "}\n"
+            , LaxJsonErrorUnexpectedEof, 3, 0);
+}
+
 struct Test {
     const char *name;
     void (*fn)(void);
@@ -367,6 +409,7 @@ static struct Test tests[] = {
     {"simple digit array", test_simple_digit_array},
     {"simple string array", test_simple_string_array},
     {"array of empty object", test_array_of_empty_object},
+    {"unclosed value", test_unclosed_value},
     {NULL, NULL},
 };
 
