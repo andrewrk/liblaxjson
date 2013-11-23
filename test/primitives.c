@@ -311,6 +311,46 @@ static void test_simple_digit_array() {
             );
 }
 
+static void test_simple_string_array() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+            "[ \"1\",\"2\",\"3\",\"4\"]"
+            );
+
+    check_build(context,
+            "begin array\n"
+            "string\n"
+            "1\n"
+            "string\n"
+            "2\n"
+            "string\n"
+            "3\n"
+            "string\n"
+            "4\n"
+            "end array\n"
+            );
+}
+
+static void test_array_of_empty_object() {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+            "[ { }, { }, []]"
+            );
+
+    check_build(context,
+            "begin array\n"
+            "begin object\n"
+            "end object\n"
+            "begin object\n"
+            "end object\n"
+            "begin array\n"
+            "end array\n"
+            "end array\n"
+            );
+}
+
 struct Test {
     const char *name;
     void (*fn)(void);
@@ -325,6 +365,8 @@ static struct Test tests[] = {
     {"empty object", test_empty_object},
     {"float value", test_float_value},
     {"simple digit array", test_simple_digit_array},
+    {"simple string array", test_simple_string_array},
+    {"array of empty object", test_array_of_empty_object},
     {NULL, NULL},
 };
 
