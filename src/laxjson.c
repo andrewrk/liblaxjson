@@ -141,7 +141,8 @@ static enum LaxJsonError push_state(struct LaxJsonContext *context, enum LaxJson
         context->state_stack_size += 1024;
         if (context->state_stack_size > context->max_state_stack_size)
             return LaxJsonErrorExceededMaxStack;
-        new_ptr = realloc(context->state_stack, context->state_stack_size);
+        new_ptr = realloc(context->state_stack,
+                context->state_stack_size * sizeof(enum LaxJsonState));
         if (!new_ptr)
             return LaxJsonErrorNoMem;
         context->state_stack = new_ptr;
@@ -166,7 +167,7 @@ struct LaxJsonContext *lax_json_create(void) {
     }
 
     context->state_stack_size = 1024;
-    context->state_stack = malloc(context->state_stack_size);
+    context->state_stack = malloc(context->state_stack_size * sizeof(enum LaxJsonState));
     if (!context->state_stack) {
         lax_json_destroy(context);
         return NULL;
