@@ -272,7 +272,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         context->delim = 0;
                         break;
                     case '}':
-                        context->end(context, LaxJsonTypeObject);
+                        if (context->end(context, LaxJsonTypeObject))
+                            return LaxJsonErrorAborted;
                         pop_state(context);
                         break;
                     default:
@@ -286,14 +287,20 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         break;
                     case WHITESPACE:
                         BUFFER_CHAR('\0');
-                        context->string(context, LaxJsonTypeProperty, context->value_buffer,
-                                context->value_buffer_index - 1);
+                        if (context->string(context, LaxJsonTypeProperty, context->value_buffer,
+                                context->value_buffer_index - 1))
+                        {
+                            return LaxJsonErrorAborted;
+                        }
                         context->state = LaxJsonStateColon;
                         break;
                     case ':':
                         BUFFER_CHAR('\0');
-                        context->string(context, LaxJsonTypeProperty, context->value_buffer,
-                                context->value_buffer_index - 1);
+                        if (context->string(context, LaxJsonTypeProperty, context->value_buffer,
+                                context->value_buffer_index - 1))
+                        {
+                            return LaxJsonErrorAborted;
+                        }
                         context->state = LaxJsonStateValue;
                         context->string_type = LaxJsonTypeString;
                         PUSH_STATE(LaxJsonStateObject);
@@ -305,8 +312,11 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
             case LaxJsonStateString:
                 if (c == context->delim) {
                     BUFFER_CHAR('\0');
-                    context->string(context, context->string_type, context->value_buffer,
-                            context->value_buffer_index - 1);
+                    if (context->string(context, context->string_type, context->value_buffer,
+                            context->value_buffer_index - 1))
+                    {
+                        return LaxJsonErrorAborted;
+                    }
                     pop_state(context);
                 } else if (c == '\\') {
                     context->state = LaxJsonStateStringEscape;
@@ -494,11 +504,13 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         PUSH_STATE(LaxJsonStateValue);
                         break;
                     case '{':
-                        context->begin(context, LaxJsonTypeObject);
+                        if (context->begin(context, LaxJsonTypeObject))
+                            return LaxJsonErrorAborted;
                         context->state = LaxJsonStateObject;
                         break;
                     case '[':
-                        context->begin(context, LaxJsonTypeArray);
+                        if (context->begin(context, LaxJsonTypeArray))
+                            return LaxJsonErrorAborted;
                         context->state = LaxJsonStateArray;
                         break;
                     case '\'':
@@ -522,17 +534,20 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         context->value_buffer[0] = c;
                         break;
                     case 't':
-                        context->primitive(context, LaxJsonTypeTrue);
+                        if (context->primitive(context, LaxJsonTypeTrue))
+                            return LaxJsonErrorAborted;
                         context->state = LaxJsonStateExpect;
                         context->expected = "rue";
                         break;
                     case 'f':
-                        context->primitive(context, LaxJsonTypeFalse);
+                        if (context->primitive(context, LaxJsonTypeFalse))
+                            return LaxJsonErrorAborted;
                         context->state = LaxJsonStateExpect;
                         context->expected = "alse";
                         break;
                     case 'n':
-                        context->primitive(context, LaxJsonTypeNull);
+                        if (context->primitive(context, LaxJsonTypeNull))
+                            return LaxJsonErrorAborted;
                         context->state = LaxJsonStateExpect;
                         context->expected = "ull";
                         break;
@@ -551,7 +566,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         PUSH_STATE(LaxJsonStateArray);
                         break;
                     case ']':
-                        context->end(context, LaxJsonTypeArray);
+                        if (context->end(context, LaxJsonTypeArray))
+                            return LaxJsonErrorAborted;
                         pop_state(context);
                         break;
                     default:
@@ -579,7 +595,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     case '}':
                     case '/':
                         BUFFER_CHAR('\0');
-                        context->number(context, atof(context->value_buffer));
+                        if (context->number(context, atof(context->value_buffer)))
+                            return LaxJsonErrorAborted;
                         pop_state(context);
 
                         /* rewind 1 */
@@ -626,7 +643,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     case '}':
                     case '/':
                         BUFFER_CHAR('\0');
-                        context->number(context, atof(context->value_buffer));
+                        if (context->number(context, atof(context->value_buffer)))
+                            return LaxJsonErrorAborted;
                         pop_state(context);
 
                         /* rewind 1 */

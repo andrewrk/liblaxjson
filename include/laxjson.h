@@ -50,21 +50,23 @@ enum LaxJsonError {
     LaxJsonErrorInvalidHexDigit,
     LaxJsonErrorInvalidUnicodePoint,
     LaxJsonErrorExpectedColon,
-    LaxJsonErrorUnexpectedEof
+    LaxJsonErrorUnexpectedEof,
+    LaxJsonErrorAborted
 };
 
+/* All callbacks must be provided. Return nonzero to abort the ongoing feed operation. */
 struct LaxJsonContext {
     void *userdata;
     /* type can be property or string */
-    void (*string)(struct LaxJsonContext *, enum LaxJsonType type, const char *value, int length);
+    int (*string)(struct LaxJsonContext *, enum LaxJsonType type, const char *value, int length);
     /* type is always number */
-    void (*number)(struct LaxJsonContext *, double x);
+    int (*number)(struct LaxJsonContext *, double x);
     /* type can be true, false, or null */
-    void (*primitive)(struct LaxJsonContext *, enum LaxJsonType type);
+    int (*primitive)(struct LaxJsonContext *, enum LaxJsonType type);
     /* type can be array or object */
-    void (*begin)(struct LaxJsonContext *, enum LaxJsonType type);
+    int (*begin)(struct LaxJsonContext *, enum LaxJsonType type);
     /* type can be array or object */
-    void (*end)(struct LaxJsonContext *, enum LaxJsonType type);
+    int (*end)(struct LaxJsonContext *, enum LaxJsonType type);
 
     int line;
     int column;

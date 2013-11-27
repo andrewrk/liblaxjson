@@ -35,6 +35,8 @@ static const char *err_to_str(enum LaxJsonError err) {
             return "expected colon";
         case LaxJsonErrorUnexpectedEof:
             return "unexpected EOF";
+        case LaxJsonErrorAborted:
+            return "aborted";
     }
     exit(1);
 }
@@ -74,33 +76,38 @@ static void feed(struct LaxJsonContext *context, const char *data) {
     exit(1);
 }
 
-static void on_string_build(struct LaxJsonContext *context,
+static int on_string_build(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
     add_buf(type_to_str(type), 0);
     add_buf("\n", 0);
     add_buf(value, length);
     add_buf("\n", 0);
+    return 0;
 }
 
-static void on_number_build(struct LaxJsonContext *context, double x)
+static int on_number_build(struct LaxJsonContext *context, double x)
 {
     out_buf_index += snprintf(&out_buf[out_buf_index], 30, "number %g\n", x);
+    return 0;
 }
 
-static void on_primitive_build(struct LaxJsonContext *context, enum LaxJsonType type)
+static int on_primitive_build(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     out_buf_index += snprintf(&out_buf[out_buf_index], 50, "%s\n", type_to_str(type));
+    return 0;
 }
 
-static void on_begin_build(struct LaxJsonContext *context, enum LaxJsonType type)
+static int on_begin_build(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     out_buf_index += snprintf(&out_buf[out_buf_index], 50, "begin %s\n", type_to_str(type));
+    return 0;
 }
 
-static void on_end_build(struct LaxJsonContext *context, enum LaxJsonType type)
+static int on_end_build(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     out_buf_index += snprintf(&out_buf[out_buf_index], 50, "end %s\n", type_to_str(type));
+    return 0;
 }
 
 static void check_build(struct LaxJsonContext *context, const char *output) {

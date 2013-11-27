@@ -8,19 +8,21 @@
 #include <laxjson.h>
 #include <stdio.h>
 
-static void on_string(struct LaxJsonContext *context,
+static int on_string(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
     char *type_name = type == LaxJsonTypeProperty ? "property" : "string";
     printf("%s: %s\n", type_name, value);
+    return 0;
 }
 
-static void on_number(struct LaxJsonContext *context, double x)
+static int on_number(struct LaxJsonContext *context, double x)
 {
     printf("number: %f\n", x);
+    return 0;
 }
 
-static void on_primitive(struct LaxJsonContext *context, enum LaxJsonType type)
+static int on_primitive(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     char *type_name;
     if (type == LaxJsonTypeTrue)
@@ -31,18 +33,21 @@ static void on_primitive(struct LaxJsonContext *context, enum LaxJsonType type)
         type_name = "null";
 
     printf("primitive: %s\n", type_name);
+    return 0;
 }
 
-static void on_begin(struct LaxJsonContext *context, enum LaxJsonType type)
+static int on_begin(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     char *type_name = LaxJsonTypeArray ? "array" : "object";
     printf("begin %s\n", type_name);
+    return 0;
 }
 
-static void on_end(struct LaxJsonContext *context, enum LaxJsonType type)
+static int on_end(struct LaxJsonContext *context, enum LaxJsonType type)
 {
     char *type_name = LaxJsonTypeArray ? "array" : "object";
     printf("end %s\n", type_name);
+    return 0;
 }
 
 int main() {
