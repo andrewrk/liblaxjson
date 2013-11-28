@@ -8,6 +8,11 @@
 #ifndef LAXJSON_H_INCLUDED
 #define LAXJSON_H_INCLUDED
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 enum LaxJsonType {
     LaxJsonTypeString,
     LaxJsonTypeProperty,
@@ -97,5 +102,9 @@ void lax_json_destroy(struct LaxJsonContext *context);
 
 enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const char *data);
 enum LaxJsonError lax_json_eof(struct LaxJsonContext *context);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* LAXJSON_H_INCLUDED */
