@@ -9,8 +9,9 @@
 
 ## Why?
 
-Official JSON is *almost* a human-readable and human-writable format. If we
-disable a few of the strict rules, we can make it significantly more so.
+[Official JSON](http://json.org/) is *almost* human-readable and
+human-writable. If we disable a few of the strict rules, we can make it
+significantly more so.
 
 You would use this library when parsing user input, such as a config file.
 You would *not* use this library when serializing or deserializing, or
