@@ -79,6 +79,18 @@ int main() {
 
 ## Installation
 
+### Pre-Built Packages
+
+ * [Ubuntu PPA](https://launchpad.net/~andrewrk/+archive/rucksack)
+
+   ```
+   sudo apt-add-repository ppa:andrewrk/rucksack
+   sudo apt-get update
+   sudo apt-get install liblaxjson-dev
+   ```
+
+### From Source
+
 ```sh
 mkdir build
 cd build
