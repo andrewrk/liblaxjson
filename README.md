@@ -7,6 +7,29 @@
  * `//` and `/* */` style comments
  * extra commas `,` in arrays and objects
 
+## Why?
+
+Official JSON is *almost* a human-readable and human-writable format. If we
+disable a few of the strict rules, we can make it significantly more so.
+
+You would use this library when parsing user input, such as a config file.
+You would *not* use this library when serializing or deserializing, or
+as a format for computer-to-computer communication.
+
+I could not find another JSON parser that fit all of these requirements:
+
+ * C library
+ * Relaxed parsing rules as outlined above. As a rule of thumb the parser
+   should be compatible with [GYP](https://code.google.com/p/gyp/).
+ * Streaming - ability to not buffer the entire JSON string in memory
+   before parsing it.
+ * In Debian/Ubuntu's package repository or at least scheduled to be in it.
+
+So I wrote one that satisfies all these requirements. It has a
+[test suite](test) and is already in use by
+[another project](https://github.com/superjoe30/rucksack). I have filed an
+Intent To Package and created an Ubuntu PPA for easy installation.
+
 ## Usage
 
 See include/laxjson.h for more details.
@@ -100,3 +123,10 @@ sudo make install
 ```
 
 To run the tests, use `make test`.
+
+## Projects Using liblaxjson
+
+Feel free to make a pull request adding to this list.
+
+ * [rucksack](https://github.com/superjoe30/rucksack) - a texture packer and
+   resource bundler
