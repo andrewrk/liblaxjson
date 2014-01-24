@@ -28,7 +28,7 @@ I could not find another JSON parser that fit all of these requirements:
 
 So I wrote one that satisfies all these requirements. It has a
 [test suite](test) and is already in use by
-[another project](https://github.com/superjoe30/rucksack). I have filed an
+[another project](https://github.com/andrewrk/rucksack). I have filed an
 Intent To Package and created an Ubuntu PPA for easy installation.
 
 ## Usage
@@ -129,5 +129,5 @@ To run the tests, use `make test`.
 
 Feel free to make a pull request adding to this list.
 
- * [rucksack](https://github.com/superjoe30/rucksack) - a texture packer and
+ * [rucksack](https://github.com/andrewrk/rucksack) - a texture packer and
    resource bundler
