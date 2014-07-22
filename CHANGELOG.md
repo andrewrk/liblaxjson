@@ -1,3 +1,7 @@
+### 1.0.2
+
+ * add CHANGELOG.md file
+
 ### 1.0.1
 
  * build: install laxjson.h on install target
