@@ -28,8 +28,9 @@ I could not find another JSON parser that fit all of these requirements:
 
 So I wrote one that satisfies all these requirements. It has a
 [test suite](test) and is already in use by
-[another project](https://github.com/andrewrk/rucksack). I have filed an
-Intent To Package and created an Ubuntu PPA for easy installation.
+[another project](https://github.com/andrewrk/rucksack). It has been uploaded
+to Debian and is scheduled to be released in "jessie" and Ubuntu 14.10
+Utopic Unicorn.
 
 ## Usage
 
