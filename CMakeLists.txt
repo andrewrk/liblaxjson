@@ -18,7 +18,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include")
 add_library(laxjson_static STATIC ${SOURCES} ${HEADERS})
 set_target_properties(laxjson_static PROPERTIES
   OUTPUT_NAME laxjson
-  COMPILE_FLAGS "${LIB_CFLAGS} -fPIC")
+  COMPILE_FLAGS ${LIB_CFLAGS})
 
 add_library(laxjson SHARED ${SOURCES} ${HEADERS})
 set_target_properties(laxjson PROPERTIES
