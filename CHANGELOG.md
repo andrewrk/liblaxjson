@@ -1,3 +1,7 @@
+### 1.0.3
+
+ * build: remove -fPIC
+
 ### 1.0.2
 
  * add CHANGELOG.md file
