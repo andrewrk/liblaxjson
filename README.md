@@ -96,6 +96,7 @@ int main() {
     while ((amt_read = fread(buf, 1, sizeof(buf), f))) {
         lax_json_feed(context, amt_read, buf);
     }
+    lax_json_eof(context);
     lax_json_destroy(context);
 
     return 0;
