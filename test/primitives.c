@@ -185,7 +185,7 @@ static void check_error(const char *input, enum LaxJsonError error, int line, in
 }
 
 
-static void test_false() {
+static void test_false(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -198,7 +198,7 @@ static void test_false() {
             );
 }
 
-static void test_true() {
+static void test_true(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -210,7 +210,7 @@ static void test_true() {
             );
 }
 
-static void test_null() {
+static void test_null(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -222,7 +222,7 @@ static void test_null() {
             );
 }
 
-static void test_string() {
+static void test_string(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -235,7 +235,7 @@ static void test_string() {
             );
 }
 
-static void test_basic_json() {
+static void test_basic_json(void) {
     struct LaxJsonContext *context;
 
     context = init_for_build();
@@ -303,7 +303,7 @@ static void test_basic_json() {
             );
 }
 
-static void test_empty_object() {
+static void test_empty_object(void) {
     struct LaxJsonContext *context;
 
     context = init_for_build();
@@ -316,7 +316,7 @@ static void test_empty_object() {
             );
 }
 
-static void test_float_value() {
+static void test_float_value(void) {
     struct LaxJsonContext *context;
 
     context = init_for_build();
@@ -336,7 +336,7 @@ static void test_float_value() {
             );
 }
 
-static void test_simple_digit_array() {
+static void test_simple_digit_array(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -353,7 +353,7 @@ static void test_simple_digit_array() {
             );
 }
 
-static void test_simple_string_array() {
+static void test_simple_string_array(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -374,7 +374,7 @@ static void test_simple_string_array() {
             );
 }
 
-static void test_array_of_empty_object() {
+static void test_array_of_empty_object(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -393,14 +393,14 @@ static void test_array_of_empty_object() {
             );
 }
 
-static void test_unclosed_value() {
+static void test_unclosed_value(void) {
     check_error(
             "{ foo: \"value\n"
             "}\n"
             , LaxJsonErrorUnexpectedEof, 3, 0);
 }
 
-static void test_unicode_text() {
+static void test_unicode_text(void) {
     struct LaxJsonContext *context = init_for_build();
 
     feed(context,
@@ -413,6 +413,23 @@ static void test_unicode_text() {
             "v\n"
             "string\n"
             "\xe2\x80\x80\xe2\x83\xbf\n"
+            "end object\n"
+            );
+}
+
+static void test_escapes(void) {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context,
+            "{ prop: \"\\b\\n\\\"\\\\\\t\\f\\r\" }"
+        );
+
+    check_build(context,
+            "begin object\n"
+            "property\n"
+            "prop\n"
+            "string\n"
+            "\b\n\"\\\t\f\r\n"
             "end object\n"
             );
 }
@@ -436,6 +453,7 @@ static struct Test tests[] = {
     {"array of empty object", test_array_of_empty_object},
     {"unclosed value", test_unclosed_value},
     {"unicode text", test_unicode_text},
+    {"escapes", test_escapes},
     {NULL, NULL},
 };
 
