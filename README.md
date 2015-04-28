@@ -43,20 +43,18 @@ See include/laxjson.h for more details.
 static int on_string(struct LaxJsonContext *context,
     enum LaxJsonType type, const char *value, int length)
 {
-    char *type_name = type == LaxJsonTypeProperty ? "property" : "string";
+    const char *type_name = type == LaxJsonTypeProperty ? "property" : "string";
     printf("%s: %s\n", type_name, value);
     return 0;
 }
 
-static int on_number(struct LaxJsonContext *context, double x)
-{
+static int on_number(struct LaxJsonContext *context, double x) {
     printf("number: %f\n", x);
     return 0;
 }
 
-static int on_primitive(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    char *type_name;
+static int on_primitive(struct LaxJsonContext *context, enum LaxJsonType type) {
+    const char *type_name;
     if (type == LaxJsonTypeTrue)
         type_name = "true";
     else if (type == LaxJsonTypeFalse)
@@ -68,16 +66,14 @@ static int on_primitive(struct LaxJsonContext *context, enum LaxJsonType type)
     return 0;
 }
 
-static int on_begin(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    char *type_name = LaxJsonTypeArray ? "array" : "object";
+static int on_begin(struct LaxJsonContext *context, enum LaxJsonType type) {
+    const char *type_name = (type == LaxJsonTypeArray) ? "array" : "object";
     printf("begin %s\n", type_name);
     return 0;
 }
 
-static int on_end(struct LaxJsonContext *context, enum LaxJsonType type)
-{
-    char *type_name = LaxJsonTypeArray ? "array" : "object";
+static int on_end(struct LaxJsonContext *context, enum LaxJsonType type) {
+    const char *type_name = (type == LaxJsonTypeArray) ? "array" : "object";
     printf("end %s\n", type_name);
     return 0;
 }
@@ -138,3 +134,4 @@ Feel free to make a pull request adding to this list.
 
  * [rucksack](https://github.com/andrewrk/rucksack) - a texture packer and
    resource bundler
+ * [Genesis](https://github.com/andrewrk/genesis) - digital audio workstation

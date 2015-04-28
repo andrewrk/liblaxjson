@@ -331,21 +331,27 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     case '/':
                     case '\\':
                         BUFFER_CHAR(c);
+                        context->state = LaxJsonStateString;
                         break;
                     case 'b':
                         BUFFER_CHAR('\b');
+                        context->state = LaxJsonStateString;
                         break;
                     case 'f':
                         BUFFER_CHAR('\f');
+                        context->state = LaxJsonStateString;
                         break;
                     case 'n':
                         BUFFER_CHAR('\n');
+                        context->state = LaxJsonStateString;
                         break;
                     case 'r':
                         BUFFER_CHAR('\r');
+                        context->state = LaxJsonStateString;
                         break;
                     case 't':
                         BUFFER_CHAR('\t');
+                        context->state = LaxJsonStateString;
                         break;
                     case 'u':
                         context->state = LaxJsonStateUnicodeEscape;
