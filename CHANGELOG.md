@@ -1,3 +1,7 @@
+### 1.0.4
+
+ * fix escapes silently breaking parser
+
 ### 1.0.3
 
  * build: remove -fPIC
