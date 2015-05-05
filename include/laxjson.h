@@ -103,6 +103,8 @@ void lax_json_destroy(struct LaxJsonContext *context);
 enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const char *data);
 enum LaxJsonError lax_json_eof(struct LaxJsonContext *context);
 
+const char *lax_json_str_err(enum LaxJsonError err);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

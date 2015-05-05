@@ -715,3 +715,20 @@ enum LaxJsonError lax_json_eof(struct LaxJsonContext *context) {
         }
     }
 }
+
+const char *lax_json_str_err(enum LaxJsonError err) {
+    switch (err) {
+        case LaxJsonErrorNone: return "none";
+        case LaxJsonErrorUnexpectedChar: return "unexpected character";
+        case LaxJsonErrorExpectedEof: return "expected end of file";
+        case LaxJsonErrorExceededMaxStack: return "exceeded max stack";
+        case LaxJsonErrorNoMem: return "out of memory";
+        case LaxJsonErrorExceededMaxValueSize: return "exceeded maximum value size";
+        case LaxJsonErrorInvalidHexDigit: return "invalid hex digit";
+        case LaxJsonErrorInvalidUnicodePoint: return "invalid unicode point";
+        case LaxJsonErrorExpectedColon: return "expected colon";
+        case LaxJsonErrorUnexpectedEof: return "unexpected end of file";
+        case LaxJsonErrorAborted: return "aborted";
+    }
+    return "invalid error code";
+}

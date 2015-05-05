@@ -55,6 +55,7 @@ int main() {
     struct LaxJsonContext *context;
     FILE *f;
     int amt_read;
+    enum LaxJsonError err;
 
     context = lax_json_create();
 
@@ -67,7 +68,16 @@ int main() {
 
     f = fopen("file.json", "rb");
     while ((amt_read = fread(buf, 1, sizeof(buf), f))) {
-        lax_json_feed(context, amt_read, buf);
+        if ((err = lax_json_feed(context, amt_read, buf))) {
+            fprintf(stderr, "Line %d, column %d: %s\n",
+                    context->line, context->column, lax_json_str_err(err));
+            return -1;
+        }
+    }
+    if ((err = lax_json_eof(context))) {
+        fprintf(stderr, "Line %d, column %d: %s\n",
+                context->line, context->column, lax_json_str_err(err));
+        return -1;
     }
     lax_json_destroy(context);
 
