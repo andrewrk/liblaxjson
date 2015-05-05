@@ -1,3 +1,7 @@
+### 1.0.5
+
+ * fix decimal numbers causing parse error
+
 ### 1.0.4
 
  * fix escapes silently breaking parser
