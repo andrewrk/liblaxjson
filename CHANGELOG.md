@@ -1,6 +1,7 @@
 ### 1.0.5
 
  * fix decimal numbers causing parse error
+ * add `lax_json_str_err(enum LaxJsonError err)`
 
 ### 1.0.4
 
