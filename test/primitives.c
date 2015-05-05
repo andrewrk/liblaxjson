@@ -13,34 +13,6 @@ static void add_buf(const char *str, int len) {
     out_buf_index += len;
 }
 
-static const char *err_to_str(enum LaxJsonError err) {
-    switch(err) {
-        case LaxJsonErrorNone:
-            return "";
-        case LaxJsonErrorUnexpectedChar:
-            return "unexpected char";
-        case LaxJsonErrorExpectedEof:
-            return "expected EOF";
-        case LaxJsonErrorExceededMaxStack:
-            return "exceeded max stack";
-        case LaxJsonErrorNoMem:
-            return "no mem";
-        case LaxJsonErrorExceededMaxValueSize:
-            return "exceeded max value size";
-        case LaxJsonErrorInvalidHexDigit:
-            return "invalid hex digit";
-        case LaxJsonErrorInvalidUnicodePoint:
-            return "invalid unicode point";
-        case LaxJsonErrorExpectedColon:
-            return "expected colon";
-        case LaxJsonErrorUnexpectedEof:
-            return "unexpected EOF";
-        case LaxJsonErrorAborted:
-            return "aborted";
-    }
-    exit(1);
-}
-
 static const char *type_to_str(enum LaxJsonType type) {
     switch (type) {
         case LaxJsonTypeString:
@@ -72,7 +44,7 @@ static void feed(struct LaxJsonContext *context, const char *data) {
         return;
 
     fprintf(stderr, "line %d column %d parse error: %s\n", context->line,
-            context->column, err_to_str(err));
+            context->column, lax_json_str_err(err));
     exit(1);
 }
 
@@ -114,7 +86,7 @@ static void check_build(struct LaxJsonContext *context, const char *output) {
     int expected_len = strlen(output);
     enum LaxJsonError err = lax_json_eof(context);
     if (err != LaxJsonErrorNone) {
-        fprintf(stderr, "%s\n", err_to_str(err));
+        fprintf(stderr, "%s\n", lax_json_str_err(err));
         exit(1);
     }
     if (out_buf_index != expected_len) {
@@ -167,7 +139,7 @@ static void check_error(const char *input, enum LaxJsonError error, int line, in
         err = lax_json_eof(context);
 
     if (err != error) {
-        fprintf(stderr, "Expected %s, received %s\n", err_to_str(error), err_to_str(err));
+        fprintf(stderr, "Expected %s, received %s\n", lax_json_str_err(error), lax_json_str_err(err));
         exit(1);
     }
 
@@ -434,6 +406,20 @@ static void test_escapes(void) {
             );
 }
 
+static void test_decimals(void) {
+    struct LaxJsonContext *context = init_for_build();
+
+    feed(context, "{n: 0.3}");
+
+    check_build(context,
+            "begin object\n"
+            "property\n"
+            "n\n"
+            "number 0.3\n"
+            "end object\n"
+            );
+}
+
 
 struct Test {
     const char *name;
@@ -454,6 +440,7 @@ static struct Test tests[] = {
     {"unclosed value", test_unclosed_value},
     {"unicode text", test_unicode_text},
     {"escapes", test_escapes},
+    {"decimal", test_decimals},
     {NULL, NULL},
 };
 

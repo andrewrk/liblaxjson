@@ -107,6 +107,12 @@
     case ')': \
     case ALPHANUMERIC
     
+#define NUMBER_TERMINATOR \
+    ',': \
+    case WHITESPACE: \
+    case ']': \
+    case '}': \
+    case '/'
 
 static const int HEX_MULT[] = {4096, 256, 16, 1};
 
@@ -595,11 +601,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         BUFFER_CHAR(c);
                         context->state = LaxJsonStateNumberDecimal;
                         break;
-                    case ',':
-                    case WHITESPACE:
-                    case ']':
-                    case '}':
-                    case '/':
+                    case NUMBER_TERMINATOR:
                         BUFFER_CHAR('\0');
                         if (context->number(context, atof(context->value_buffer)))
                             return LaxJsonErrorAborted;
@@ -622,6 +624,12 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     case 'E':
                         BUFFER_CHAR('e');
                         context->state = LaxJsonStateNumberExponentSign;
+                        break;
+                    case NUMBER_TERMINATOR:
+                        context->state = LaxJsonStateNumber;
+                        /* rewind 1 */
+                        data -= 1;
+                        context->column -= 1;
                         break;
                     default:
                         return LaxJsonErrorUnexpectedChar;
