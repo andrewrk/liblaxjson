@@ -1,0 +1,19 @@
+ * static initializer of arrays - array literal
+ * structs
+ * sizeof
+ * tagged unions
+ * maybe type and ?? operator
+ * switch / match statement
+ * assert
+ * function pointers
+ * fancy error / cleanup handling
+ * solution to the ALPHANUMERIC/ DIGIT / case macros
+ * panic
+ * build static library and shared library at the same time
+ * build example C program
+ * testing (see primitives test)
+ * install .h file and libraries
+ * typedef with c header directives
+ * forever loop
+ * c style for loop
+ * char c interaction?

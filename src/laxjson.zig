@@ -5,294 +5,190 @@
  * See http://opensource.org/licenses/MIT
  */
 
-#include "laxjson.h"
+#version("1.0.5")
+export library "laxjson";
 
-#include <stdlib.h>
-#include <assert.h>
+#link("c")
+include!("stdlib.h");
 
-#define WHITESPACE \
-    ' ': \
-    case '\t': \
-    case '\n': \
-    case '\f': \
-    case '\r': \
-    case 0xb
+#c_header_name("void")
+type c_void = u8;
+#c_header_name("char")
+type c_char = u8;
 
-#define DIGIT \
-    '0': \
-    case '1': \
-    case '2': \
-    case '3': \
-    case '4': \
-    case '5': \
-    case '6': \
-    case '7': \
-    case '8': \
-    case '9'
-
-#define ALPHANUMERIC \
-    'a': \
-    case 'b': \
-    case 'c': \
-    case 'd': \
-    case 'e': \
-    case 'f': \
-    case 'g': \
-    case 'h': \
-    case 'i': \
-    case 'j': \
-    case 'k': \
-    case 'l': \
-    case 'm': \
-    case 'n': \
-    case 'o': \
-    case 'p': \
-    case 'q': \
-    case 'r': \
-    case 's': \
-    case 't': \
-    case 'u': \
-    case 'v': \
-    case 'w': \
-    case 'x': \
-    case 'y': \
-    case 'z': \
-    case 'A': \
-    case 'B': \
-    case 'C': \
-    case 'D': \
-    case 'E': \
-    case 'F': \
-    case 'G': \
-    case 'H': \
-    case 'I': \
-    case 'J': \
-    case 'K': \
-    case 'L': \
-    case 'M': \
-    case 'N': \
-    case 'O': \
-    case 'P': \
-    case 'Q': \
-    case 'R': \
-    case 'S': \
-    case 'T': \
-    case 'U': \
-    case 'V': \
-    case 'W': \
-    case 'X': \
-    case 'Y': \
-    case 'Z': \
-    case DIGIT
-
-#define VALID_UNQUOTED \
-    '-': \
-    case '_': \
-    case '#': \
-    case '$': \
-    case '%': \
-    case '&': \
-    case '<': \
-    case '>': \
-    case '=': \
-    case '~': \
-    case '|': \
-    case '@': \
-    case '?': \
-    case ';': \
-    case '.': \
-    case '+': \
-    case '*': \
-    case '(': \
-    case ')': \
-    case ALPHANUMERIC
-    
-#define NUMBER_TERMINATOR \
-    ',': \
-    case WHITESPACE: \
-    case ']': \
-    case '}': \
-    case '/'
-
-static const int HEX_MULT[] = {4096, 256, 16, 1};
-
-/*
-static const char *STATE_NAMES[] = {
-    "LaxJsonStateValue",
-    "LaxJsonStateObject",
-    "LaxJsonStateArray",
-    "LaxJsonStateString",
-    "LaxJsonStateStringEscape",
-    "LaxJsonStateUnicodeEscape",
-    "LaxJsonStateBareProp",
-    "LaxJsonStateCommentBegin",
-    "LaxJsonStateCommentLine",
-    "LaxJsonStateCommentMultiLine",
-    "LaxJsonStateCommentMultiLineStar",
-    "LaxJsonStateExpect",
-    "LaxJsonStateEnd",
-    "LaxJsonStateColon",
-    "LaxJsonStateNumber",
-    "LaxJsonStateNumberDecimal",
-    "LaxJsonStateNumberExponent",
-    "LaxJsonStateNumberExponentSign"
-};
-*/
-
-static enum LaxJsonError push_state(struct LaxJsonContext *context, enum LaxJsonState state) {
-    enum LaxJsonState *new_ptr;
-
-    /* fprintf(stderr, "push state %s\n", STATE_NAMES[state]); */
-    if (context->state_stack_index >= context->state_stack_size) {
-        context->state_stack_size += 1024;
-        if (context->state_stack_size > context->max_state_stack_size)
-            return LaxJsonErrorExceededMaxStack;
-        new_ptr = realloc(context->state_stack,
-                context->state_stack_size * sizeof(enum LaxJsonState));
-        if (!new_ptr)
-            return LaxJsonErrorNoMem;
-        context->state_stack = new_ptr;
-    }
-    context->state_stack[context->state_stack_index] = state;
-    context->state_stack_index += 1;
-    return LaxJsonErrorNone;
+export enum LaxJsonType {
+    String,
+    Property,
+    Number,
+    Object,
+    Array,
+    True,
+    False,
+    Null,
 }
 
-struct LaxJsonContext *lax_json_create(void) {
-    struct LaxJsonContext *context = calloc(1, sizeof(struct LaxJsonContext));
+export enum LaxJsonState {
+    Value,
+    Object,
+    Array,
+    String,
+    StringEscape,
+    UnicodeEscape,
+    BareProp,
+    CommentBegin,
+    CommentLine,
+    CommentMultiLine,
+    CommentMultiLineStar,
+    Expect,
+    End,
+    Colon,
+    Number,
+    NumberDecimal,
+    NumberExponent,
+    NumberExponentSign,
+}
 
-    if (!context)
-        return NULL;
+export enum LaxJsonError {
+    None,
+    UnexpectedChar,
+    ExpectedEof,
+    ExceededMaxStack,
+    NoMem,
+    ExceededMaxValueSize,
+    InvalidHexDigit,
+    InvalidUnicodePoint,
+    ExpectedColon,
+    UnexpectedEof,
+    Aborted,
+}
 
-    context->value_buffer_size = 1024;
-    context->value_buffer = malloc(context->value_buffer_size);
+/// All callbacks must be provided. Return nonzero to abort the ongoing feed operation.
+export struct LaxJsonContext {
+    userdata: &c_void,
 
-    if (!context->value_buffer) {
+    /// type can be property or string
+    int (*string)(struct LaxJsonContext *, enum LaxJsonType type, const char *value, int length);
+    /// type is always number
+    int (*number)(struct LaxJsonContext *, double x);
+    /// type can be true, false, or null
+    int (*primitive)(struct LaxJsonContext *, enum LaxJsonType type);
+    /// type can be array or object
+    int (*begin)(struct LaxJsonContext *, enum LaxJsonType type);
+    /// type can be array or object
+    int (*end)(struct LaxJsonContext *, enum LaxJsonType type);
+
+    line: c_int,
+    column: c_int,
+
+    max_state_stack_size: c_int,
+    max_value_buffer_size: c_int,
+
+    /// private members
+
+    state: LaxJsonState,
+    state_stack: &LaxJsonState,
+    state_stack_index: c_int,
+    state_stack_size: c_int,
+
+    value_buffer: &c_char,
+    value_buffer_index: c_int,
+    value_buffer_size: c_int,
+
+    unicode_point: c_uint,
+    unicode_digit_index: c_uint,
+
+    expected: &c_char,
+    delim: c_char;
+    string_type: LaxJsonType,
+}
+
+export fn lax_json_create() -> ?&LaxJsonContext {
+    const context : &LaxJsonContext = calloc(1, #sizeof(LaxJsonContext)) ?? return None;
+
+    context.value_buffer_size = 1024;
+    context.value_buffer = malloc(context.value_buffer_size) ?? {
         lax_json_destroy(context);
-        return NULL;
-    }
+        return None;
+    };
 
-    context->state_stack_size = 1024;
-    context->state_stack = malloc(context->state_stack_size * sizeof(enum LaxJsonState));
-    if (!context->state_stack) {
+    context.state_stack_size = 1024;
+    context.state_stack = malloc(context.state_stack_size * #sizeof(LaxJsonState)) ?? {
         lax_json_destroy(context);
-        return NULL;
-    }
+        return None;
+    };
 
-    context->line = 1;
-    context->max_state_stack_size = 16384;
-    context->max_value_buffer_size = 1048576; /* 1 MB */
+    context.line = 1;
+    context.max_state_stack_size = 16384;
+    context.max_value_buffer_size = 1048576; /* 1 MB */
 
     push_state(context, LaxJsonStateEnd);
 
     return context;
 }
 
-void lax_json_destroy(struct LaxJsonContext *context) {
-    free(context->state_stack);
-    free(context->value_buffer);
+export fn lax_json_destroy(context: &LaxJsonContext) {
+    free(context.state_stack);
+    free(context.value_buffer);
     free(context);
 }
 
-static void pop_state(struct LaxJsonContext *context) {
-    context->state_stack_index -= 1;
-    context->state = context->state_stack[context->state_stack_index];
-    assert(context->state_stack_index >= 0);
-}
+const HEX_MULT = [4096, 256, 16, 1];
 
-static enum LaxJsonError buffer_char(struct LaxJsonContext *context, char c) {
-    char *new_ptr;
-    if (context->value_buffer_index >= context->value_buffer_size) {
-        context->value_buffer_size += 16384;
-        if (context->value_buffer_size > context->max_value_buffer_size)
-            return LaxJsonErrorExceededMaxValueSize;
-        new_ptr = realloc(context->value_buffer, context->value_buffer_size);
-        if (!new_ptr)
-            return LaxJsonErrorNoMem;
-        context->value_buffer = new_ptr;
-    }
-    context->value_buffer[context->value_buffer_index] = c;
-    context->value_buffer_index += 1;
-    return LaxJsonErrorNone;
-}
-
-enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const char *data) {
-#define PUSH_STATE(state) \
-    err = push_state(context, state); \
-    if (err) return err;
-#define BUFFER_CHAR(c) \
-    err = buffer_char(context, c); \
-    if (err) return err;
-
-    enum LaxJsonError err = LaxJsonErrorNone;
-    int x;
-    const char *end;
-    char c;
-    unsigned char byte;
-    for (end = data + size; data < end; data += 1) {
-        c = *data;
-        if (c == '\n') {
-            context->line += 1;
-            context->column = 0;
+export fn lax_json_feed(context: &LaxJsonContext, size: c_int, data: &const c_char) -> LaxJsonError {
+    var err : LaxJsonError = LaxJsonError.None;
+    var x : i32;
+    var byte : u8;
+    var end : &const u8 = data + size;
+    for end = data + size; data < end; data += 1 {
+        const c = *data;
+        if c == '\n' {
+            context.line += 1;
+            context.column = 0;
         } else {
-            context->column += 1;
+            context.column += 1;
         }
-        /* fprintf(stderr, "line %d col %d state %s char %c\n", context->line, context->column,
-                  STATE_NAMES[context->state], c); */
-        switch (context->state) {
-            case LaxJsonStateEnd:
-                switch (c) {
-                    case WHITESPACE:
-                        /* ignore */
-                        break;
-                    case '/':
-                        context->state = LaxJsonStateCommentBegin;
-                        PUSH_STATE(LaxJsonStateEnd);
-                        break;
-                    default:
-                        return LaxJsonErrorExpectedEof;
+        match context.state {
+            LaxJsonState.End => {
+                if is_whitespace(c) {
+                    // ignore
+                } else if c == '/' {
+                    context.state = LaxJsonState.CommentBegin;
+                    return_if_error push_state(context, LaxJsonStateEnd);
+                } else {
+                    return LaxJsonErrorExpectedEof;
                 }
-                break;
-            case LaxJsonStateObject:
-                switch (c) {
-                    case WHITESPACE:
-                    case ',':
-                        /* do nothing except eat these characters */
-                        break;
-                    case '/':
-                        context->state = LaxJsonStateCommentBegin;
-                        PUSH_STATE(LaxJsonStateObject);
-                        break;
-                    case '"':
-                    case '\'':
-                        context->state = LaxJsonStateString;
-                        context->value_buffer_index = 0;
-                        context->delim = c;
-                        context->string_type = LaxJsonTypeProperty;
-                        PUSH_STATE(LaxJsonStateColon);
-                        break;
-                    case VALID_UNQUOTED:
-                        context->state = LaxJsonStateBareProp;
-                        context->value_buffer[0] = c;
-                        context->value_buffer_index = 1;
-                        context->delim = 0;
-                        break;
-                    case '}':
-                        if (context->end(context, LaxJsonTypeObject))
-                            return LaxJsonErrorAborted;
-                        pop_state(context);
-                        break;
-                    default:
-                        return LaxJsonErrorUnexpectedChar;
+            },
+            LaxJsonState.Object => {
+                if is_whitespace(c) || c == ',' {
+                    // do nothing except eat these characters
+                } else if c == '/' {
+                    context.state = LaxJsonState.CommentBegin;
+                    return_if_error push_state(context, LaxJsonState.Object);
+                } else if c == '"' || c == '\'' {
+                    context.state = LaxJsonState.String;
+                    context.value_buffer_index = 0;
+                    context.delim = c;
+                    context.string_type = LaxJsonType.Property;
+                    return_if_error push_state(context, LaxJsonState.Colon);
+                } else if is_valid_unquoted(c) {
+                    context.state = LaxJsonState.BareProp;
+                    context.value_buffer[0] = c;
+                    context.value_buffer_index = 1;
+                    context.delim = 0;
+                } else if c == '}' {
+                    if context.end(context, LaxJsonType.Object)
+                        return LaxJsonError.Aborted;
+                    pop_state(context);
+                } else {
+                    return LaxJsonError.UnexpectedChar;
                 }
-                break;
-            case LaxJsonStateBareProp:
-                switch (c) {
-                    case VALID_UNQUOTED:
-                        BUFFER_CHAR(c);
+            },
+            LaxJsonState.BareProp => {
+                if is_valid_unquoted(c) {
+                        return_if_error buffer_char(context, c);
                         break;
-                    case WHITESPACE:
-                        BUFFER_CHAR('\0');
+                } else if is_whitespace(c) {
+                        return_if_error buffer_char(context, '\0');
                         if (context->string(context, LaxJsonTypeProperty, context->value_buffer,
                                 context->value_buffer_index - 1))
                         {
@@ -300,8 +196,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         }
                         context->state = LaxJsonStateColon;
                         break;
-                    case ':':
-                        BUFFER_CHAR('\0');
+                } else if c == ':' {
+                        return_if_error buffer_char(context, '\0');
                         if (context->string(context, LaxJsonTypeProperty, context->value_buffer,
                                 context->value_buffer_index - 1))
                         {
@@ -309,15 +205,15 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         }
                         context->state = LaxJsonStateValue;
                         context->string_type = LaxJsonTypeString;
-                        PUSH_STATE(LaxJsonStateObject);
+                        return_if_error push_state(context, LaxJsonStateObject);
                         break;
-                    default:
+                } else {
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateString:
+            },
+            LaxJsonState.String => {
                 if (c == context->delim) {
-                    BUFFER_CHAR('\0');
+                    return_if_error buffer_char(context, '\0');
                     if (context->string(context, context->string_type, context->value_buffer,
                             context->value_buffer_index - 1))
                     {
@@ -327,46 +223,35 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                 } else if (c == '\\') {
                     context->state = LaxJsonStateStringEscape;
                 } else {
-                    BUFFER_CHAR(c);
+                    return_if_error buffer_char(context, c);
                 }
-                break;
-            case LaxJsonStateStringEscape:
-                switch (c) {
-                    case '\'':
-                    case '"':
-                    case '/':
-                    case '\\':
-                        BUFFER_CHAR(c);
+            }
+            LaxJsonState.StringEscape => {
+                if c == '\'' || c == '"' || c == '/' || c == '\\' {
+                        return_if_error buffer_char(context, c);
                         context->state = LaxJsonStateString;
-                        break;
-                    case 'b':
-                        BUFFER_CHAR('\b');
+                } else if c == 'b' {
+                        return_if_error buffer_char(context, '\b');
                         context->state = LaxJsonStateString;
-                        break;
-                    case 'f':
-                        BUFFER_CHAR('\f');
+                } else if c == 'f' {
+                        return_if_error buffer_char(context, '\f');
                         context->state = LaxJsonStateString;
-                        break;
-                    case 'n':
-                        BUFFER_CHAR('\n');
+                } else if c == 'n' {
+                        return_if_error buffer_char(context, '\n');
                         context->state = LaxJsonStateString;
-                        break;
-                    case 'r':
-                        BUFFER_CHAR('\r');
+                } else if c == 'r' {
+                        return_if_error buffer_char(context, '\r');
                         context->state = LaxJsonStateString;
-                        break;
-                    case 't':
-                        BUFFER_CHAR('\t');
+                } else if c == 't' {
+                        return_if_error buffer_char(context, '\t');
                         context->state = LaxJsonStateString;
-                        break;
-                    case 'u':
+                } else if c == 'u' {
                         context->state = LaxJsonStateUnicodeEscape;
                         context->unicode_digit_index = 0;
                         context->unicode_point = 0;
-                        break;
                 }
-                break;
-            case LaxJsonStateUnicodeEscape:
+            },
+            LaxJsonState.UnicodeEscape => {
                 switch (c) {
                     case '0':
                         x = 0;
@@ -430,90 +315,90 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                 if (context->unicode_digit_index == 4) {
                     if (context->unicode_point <= 0x007f) {
                         /* 1 byte */
-                        BUFFER_CHAR((char)context->unicode_point);
+                        return_if_error buffer_char(context, (char)context->unicode_point);
                         context->state = LaxJsonStateString;
                     } else if (context->unicode_point <= 0x07ff) {
                         /* 2 bytes */
                         byte = (0xc0 | (context->unicode_point >> 6));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | (context->unicode_point & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                     } else if (context->unicode_point <= 0xffff) {
                         /* 3 bytes */
                         byte = (0xe0 | (context->unicode_point >> 12));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | (context->unicode_point & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                     } else if (context->unicode_point <= 0x1fffff) {
                         /* 4 bytes */
                         byte = (0xf0 | (context->unicode_point >> 18));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 12) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | (context->unicode_point & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                     } else if (context->unicode_point <= 0x3ffffff) {
                         /* 5 bytes */
                         byte = (0xf8 | (context->unicode_point >> 24));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | (context->unicode_point >> 18));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 12) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | (context->unicode_point & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                     } else if (context->unicode_point <= 0x7fffffff) {
                         /* 6 bytes */
                         byte = (0xfc | (context->unicode_point >> 30));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 24) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 18) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 12) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | ((context->unicode_point >> 6) & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                         byte = (0x80 | (context->unicode_point & 0x3f));
-                        BUFFER_CHAR(*(char *)(&byte));
+                        return_if_error buffer_char(context, *(char *)(&byte));
                     } else {
                         return LaxJsonErrorInvalidUnicodePoint;
                     }
                     context->state = LaxJsonStateString;
                 }
-                break;
-            case LaxJsonStateColon:
+            },
+            LaxJsonState.Colon => match c {
                 switch (c) {
                     case WHITESPACE:
                         /* ignore it */
                         break;
                     case '/':
                         context->state = LaxJsonStateCommentBegin;
-                        PUSH_STATE(LaxJsonStateColon);
+                        return_if_error push_state(context, LaxJsonStateColon);
                         break;
                     case ':':
                         context->state = LaxJsonStateValue;
                         context->string_type = LaxJsonTypeString;
-                        PUSH_STATE(LaxJsonStateObject);
+                        return_if_error push_state(context, LaxJsonStateObject);
                         break;
                     default:
                         return LaxJsonErrorExpectedColon;
                 }
-                break;
-            case LaxJsonStateValue:
+            },
+            LaxJsonState.Value => match c {
                 switch (c) {
                     case WHITESPACE:
                         /* ignore */
                         break;
                     case '/':
                         context->state = LaxJsonStateCommentBegin;
-                        PUSH_STATE(LaxJsonStateValue);
+                        return_if_error push_state(context, LaxJsonStateValue);
                         break;
                     case '{':
                         if (context->begin(context, LaxJsonTypeObject))
@@ -566,8 +451,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateArray:
+            },
+            LaxJsonState.Array => match c {
                 switch (c) {
                     case WHITESPACE:
                     case ',':
@@ -575,7 +460,7 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         break;
                     case '/':
                         context->state = LaxJsonStateCommentBegin;
-                        PUSH_STATE(LaxJsonStateArray);
+                        return_if_error push_state(context, LaxJsonStateArray);
                         break;
                     case ']':
                         if (context->end(context, LaxJsonTypeArray))
@@ -584,25 +469,25 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                         break;
                     default:
                         context->state = LaxJsonStateValue;
-                        PUSH_STATE(LaxJsonStateArray);
+                        return_if_error push_state(context, LaxJsonStateArray);
 
                         /* rewind 1 character */
                         data -= 1;
                         context->column -= 1;
                         continue;
                 }
-                break;
-            case LaxJsonStateNumber:
+            },
+            LaxJsonState.Number => match c {
                 switch (c) {
                     case DIGIT:
-                        BUFFER_CHAR(c);
+                        return_if_error buffer_char(context, c);
                         break;
                     case '.':
-                        BUFFER_CHAR(c);
+                        return_if_error buffer_char(context, c);
                         context->state = LaxJsonStateNumberDecimal;
                         break;
                     case NUMBER_TERMINATOR:
-                        BUFFER_CHAR('\0');
+                        return_if_error buffer_char(context, '\0');
                         if (context->number(context, atof(context->value_buffer)))
                             return LaxJsonErrorAborted;
                         pop_state(context);
@@ -614,15 +499,15 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateNumberDecimal:
+            },
+            LaxJsonState.NumberDecimal => match c {
                 switch (c) {
                     case DIGIT:
-                        BUFFER_CHAR(c);
+                        return_if_error buffer_char(context, c);
                         break;
                     case 'e':
                     case 'E':
-                        BUFFER_CHAR('e');
+                        return_if_error buffer_char(context, 'e');
                         context->state = LaxJsonStateNumberExponentSign;
                         break;
                     case NUMBER_TERMINATOR:
@@ -634,29 +519,29 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateNumberExponentSign:
+            },
+            LaxJsonState.NumberExponentSign => match c {
                 switch (c) {
                     case '+':
                     case '-':
-                        BUFFER_CHAR(c);
+                        return_if_error buffer_char(context, c);
                         context->state = LaxJsonStateNumberExponent;
                         break;
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateNumberExponent:
+            },
+            LaxJsonState.NumberExponent => match c {
                 switch (c) {
                     case DIGIT:
-                        BUFFER_CHAR(c);
+                        return_if_error buffer_char(context, c);
                         break;
                     case ',':
                     case WHITESPACE:
                     case ']':
                     case '}':
                     case '/':
-                        BUFFER_CHAR('\0');
+                        return_if_error buffer_char(context, '\0');
                         if (context->number(context, atof(context->value_buffer)))
                             return LaxJsonErrorAborted;
                         pop_state(context);
@@ -668,8 +553,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateExpect:
+            },
+            LaxJsonState.Expect => {
                 if (c == *context->expected) {
                     context->expected += 1;
                     if (*context->expected == 0) {
@@ -678,8 +563,8 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                 } else {
                     return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateCommentBegin:
+            },
+            LaxJsonState.CommentBegin => match c {
                 switch (c) {
                     case '/':
                         context->state = LaxJsonStateCommentLine;
@@ -690,53 +575,131 @@ enum LaxJsonError lax_json_feed(struct LaxJsonContext *context, int size, const 
                     default:
                         return LaxJsonErrorUnexpectedChar;
                 }
-                break;
-            case LaxJsonStateCommentLine:
+            },
+            LaxJsonState.CommentLine => {
                 if (c == '\n')
                     pop_state(context);
-                break;
-            case LaxJsonStateCommentMultiLine:
+            },
+            LaxJsonState.CommentMultiLine => {
                 if (c == '*')
                     context->state = LaxJsonStateCommentMultiLineStar;
-                break;
-            case LaxJsonStateCommentMultiLineStar:
+            },
+            LaxJsonState.CommentMultiLineStar => {
                 if (c == '/')
                     pop_state(context);
                 else
                     context->state = LaxJsonStateCommentMultiLine;
-                break;
+            },
         }
     }
     return err;
 }
 
-enum LaxJsonError lax_json_eof(struct LaxJsonContext *context) {
-    for (;;) {
-        switch (context->state) {
-            case LaxJsonStateEnd:
-                return LaxJsonErrorNone;
-            case LaxJsonStateCommentLine:
+export fn lax_json_eof(context: &LaxJsonContext) -> LaxJsonError {
+    while true {
+        match context.state {
+            LaxJsonStateEnd => return LaxJsonError.None,
+            LaxJsonStateCommentLine => {
                 pop_state(context);
                 continue;
-            default:
-                return LaxJsonErrorUnexpectedEof;
+            },
+            _ => return LaxJsonError.UnexpectedEof
         }
     }
 }
 
-const char *lax_json_str_err(enum LaxJsonError err) {
-    switch (err) {
-        case LaxJsonErrorNone: return "none";
-        case LaxJsonErrorUnexpectedChar: return "unexpected character";
-        case LaxJsonErrorExpectedEof: return "expected end of file";
-        case LaxJsonErrorExceededMaxStack: return "exceeded max stack";
-        case LaxJsonErrorNoMem: return "out of memory";
-        case LaxJsonErrorExceededMaxValueSize: return "exceeded maximum value size";
-        case LaxJsonErrorInvalidHexDigit: return "invalid hex digit";
-        case LaxJsonErrorInvalidUnicodePoint: return "invalid unicode point";
-        case LaxJsonErrorExpectedColon: return "expected colon";
-        case LaxJsonErrorUnexpectedEof: return "unexpected end of file";
-        case LaxJsonErrorAborted: return "aborted";
+export fn lax_json_str_err(err: LaxJsonError) -> &const c_char {
+    match err {
+        LaxJsonError.None =>  return "none",
+        LaxJsonError.UnexpectedChar => return "unexpected character",
+        LaxJsonError.ExpectedEof => return "expected end of file",
+        LaxJsonError.ExceededMaxStack => return "exceeded max stack",
+        LaxJsonError.NoMem => return "out of memory",
+        LaxJsonError.ExceededMaxValueSize => return "exceeded maximum value size",
+        LaxJsonError.InvalidHexDigit => return "invalid hex digit",
+        LaxJsonError.InvalidUnicodePoint => return "invalid unicode point",
+        LaxJsonError.ExpectedColon => return "expected colon",
+        LaxJsonError.UnexpectedEof => return "unexpected end of file",
+        LaxJsonError.Aborted => return "aborted",
     }
-    return "invalid error code";
+    return "(invalid error code)";
+}
+
+fn push_state(context: &LaxJsonContext, state: LaxJsonState) -> LaxJsonError {
+    var new_ptr: &LaxJsonState;
+
+    if context.state_stack_index >= context.state_stack_size {
+        context.state_stack_size += 1024;
+        if context.state_stack_size > context.max_state_stack_size {
+            return LaxJsonError.ExceededMaxStack;
+        }
+        new_ptr = realloc(context.state_stack, context.state_stack_size * #sizeof(LaxJsonState)) ?? {
+            return LaxJsonError.NoMem;
+        };
+        context.state_stack = new_ptr;
+    }
+    context.state_stack[context.state_stack_index] = state;
+    context.state_stack_index += 1;
+    return LaxJsonError.None;
+}
+
+fn buffer_char(context: &LaxJsonContext, c: u8) -> LaxJsonError {
+    var new_ptr: &u8;
+
+    if context.value_buffer_index >= context.value_buffer_size {
+        context.value_buffer_size += 16384;
+        if context.value_buffer_size > context.max_value_buffer_size {
+            return LaxJsonError.ExceededMaxValueSize;
+        }
+        new_ptr = realloc(context.value_buffer, context.value_buffer_size);
+        if !new_ptr {
+            return LaxJsonError.NoMem;
+        }
+        context.value_buffer = new_ptr;
+    }
+    context.value_buffer[context.value_buffer_index] = c;
+    context.value_buffer_index += 1;
+    return LaxJsonError.None;
+}
+
+fn pop_state(context: &LaxJsonContext) {
+    context.state_stack_index -= 1;
+    context.state = context.state_stack[context.state_stack_index];
+    assert(context.state_stack_index >= 0);
+}
+
+fn is_whitespace(c : u8) -> bool {
+    match c {
+        ' ' | '\t' | '\n' | '\f' | '\r' | 0xb => true,
+        _ => false,
+    }
+}
+
+fn is_digit(c : u8) -> bool {
+    match c {
+        '0' ... '9' => true,
+        _ => false,
+    }
+}
+
+fn is_alphanumeric(c : u8) -> bool {
+    match c {
+        'a' ... 'z' | 'A' ... 'Z' | '0' ... '9' => true,
+        _ => false,
+    }
+}
+
+fn is_number_terminator(c : u8) -> bool {
+    match c {
+        ',' | ']' | '}' | '/' => true,
+        _ => is_whitespace(c),
+    }
+}
+
+fn is_valid_unquoted(c : u8) -> bool {
+    match c {
+        '-' | '_' | '#' | '$' | '%' | '&' | '<' | '>' | '=' | '~' | '|' | '@' |
+        '?' | ';' | '.' | '+' | '*' | '(' | ')' => true,
+        _ => is_alphanumeric(c),
+    }
 }
