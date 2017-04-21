@@ -29,7 +29,7 @@ pub fn build(b: &Builder) {
     lib.addCompileFlagsForRelease(release);
     lib.addCompileFlags(lib_cflags);
     lib.addSourceFile("src/laxjson.c");
-    lib.linkLibrary("c");
+    lib.linkSystemLibrary("c");
     lib.addIncludeDir("include");
     b.default_step.dependOn(&lib.step);
 
@@ -61,7 +61,7 @@ pub fn build(b: &Builder) {
 
     // install
 
-    //b.installLibrary(lib);
-    //b.installFile("include/laxjson.h", "include");
-
+    const install = b.step("install", "Copy build artifacts to prefix path");
+    install.dependOn(&b.installCLibrary(lib).step);
+    install.dependOn(&b.installFile("include/laxjson.h", "include/laxjson.h").step);
 }
