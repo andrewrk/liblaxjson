@@ -53,7 +53,7 @@ pub fn build(b: &Builder) {
     primitives_test_exe.addIncludeDir("include");
     primitives_test_exe.linkCLibrary(lib);
 
-    const run_test_cmd = b.addCommand(b.out_dir, b.env_map, "./primitives_test", [][]const u8{});
+    const run_test_cmd = b.addCommand(".", b.env_map, primitives_test_exe.getOutputPath(), [][]const u8{});
     run_test_cmd.step.dependOn(&primitives_test_exe.step);
     
     const test_step = b.step("test", "Run the tests");
