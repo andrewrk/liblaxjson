@@ -60,8 +60,6 @@ pub fn build(b: &Builder) {
     test_step.dependOn(&run_test_cmd.step);
 
     // install
-
-    const install = b.step("install", "Copy build artifacts to prefix path");
-    install.dependOn(&b.installCLibrary(lib).step);
-    install.dependOn(&b.installFile("include/laxjson.h", "include/laxjson.h").step);
+    b.installCLibrary(lib);
+    b.installFile("include/laxjson.h", "include/laxjson.h");
 }
