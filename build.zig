@@ -60,6 +60,6 @@ pub fn build(b: &Builder) {
     test_step.dependOn(&run_test_cmd.step);
 
     // install
-    b.installCLibrary(lib);
+    b.installCArtifact(lib);
     b.installFile("include/laxjson.h", "include/laxjson.h");
 }
