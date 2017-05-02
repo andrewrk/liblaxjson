@@ -1,7 +1,7 @@
 const Builder = @import("std").build.Builder;
 
 pub fn build(b: &Builder) {
-    const release = b.option(bool, "release", "optimizations on and safety off") ?? false;
+    const mode = b.standardReleaseOptions();
     const static = b.option(bool, "static", "build static library instead of shared") ?? false;
 
     const lib_cflags = [][]const u8 {
@@ -26,7 +26,7 @@ pub fn build(b: &Builder) {
     } else {
         b.addCSharedLibrary("laxjson", b.version(1, 0, 5))
     };
-    lib.addCompileFlagsForRelease(release);
+    lib.setBuildMode(mode);
     lib.addCompileFlags(lib_cflags);
     lib.addSourceFile("src/laxjson.c");
     lib.linkSystemLibrary("c");
@@ -36,7 +36,7 @@ pub fn build(b: &Builder) {
     // examples
 
     const token_list_exe = b.addCExecutable("token_list");
-    token_list_exe.addCompileFlagsForRelease(release);
+    token_list_exe.setBuildMode(mode);
     token_list_exe.addCompileFlags(example_cflags);
     token_list_exe.addSourceFile("example/token_list.c");
     token_list_exe.linkCLibrary(lib);
@@ -47,7 +47,7 @@ pub fn build(b: &Builder) {
     // test
 
     const primitives_test_exe = b.addCExecutable("primitives_test");
-    primitives_test_exe.addCompileFlagsForRelease(release);
+    primitives_test_exe.setBuildMode(mode);
     primitives_test_exe.addCompileFlags(example_cflags);
     primitives_test_exe.addSourceFile("test/primitives.c");
     primitives_test_exe.addIncludeDir("include");
