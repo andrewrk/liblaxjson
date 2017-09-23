@@ -39,7 +39,7 @@ pub fn build(b: &Builder) {
     token_list_exe.setBuildMode(mode);
     token_list_exe.addCompileFlags(example_cflags);
     token_list_exe.addSourceFile("example/token_list.c");
-    token_list_exe.linkCLibrary(lib);
+    token_list_exe.linkLibrary(lib);
     token_list_exe.addIncludeDir("include");
 
     b.default_step.dependOn(&token_list_exe.step);
@@ -51,7 +51,7 @@ pub fn build(b: &Builder) {
     primitives_test_exe.addCompileFlags(example_cflags);
     primitives_test_exe.addSourceFile("test/primitives.c");
     primitives_test_exe.addIncludeDir("include");
-    primitives_test_exe.linkCLibrary(lib);
+    primitives_test_exe.linkLibrary(lib);
 
     const run_test_cmd = b.addCommand(".", b.env_map, primitives_test_exe.getOutputPath(), [][]const u8{});
     run_test_cmd.step.dependOn(&primitives_test_exe.step);
@@ -60,6 +60,6 @@ pub fn build(b: &Builder) {
     test_step.dependOn(&run_test_cmd.step);
 
     // install
-    b.installCArtifact(lib);
+    b.installArtifact(lib);
     b.installFile("include/laxjson.h", "include/laxjson.h");
 }
