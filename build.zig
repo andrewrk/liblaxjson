@@ -21,11 +21,10 @@ pub fn build(b: &Builder) {
         "-Wall",
     };
 
-    const lib = if (static) {
+    const lib = if (static)
         b.addCStaticLibrary("laxjson")
-    } else {
-        b.addCSharedLibrary("laxjson", b.version(1, 0, 5))
-    };
+    else
+        b.addCSharedLibrary("laxjson", b.version(1, 0, 5));
     lib.setBuildMode(mode);
     lib.addCompileFlags(lib_cflags);
     lib.addSourceFile("src/laxjson.c");
