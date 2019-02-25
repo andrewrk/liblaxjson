@@ -1,8 +1,8 @@
 const Builder = @import("std").build.Builder;
 
-pub fn build(b: &Builder) {
+pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
-    const static = b.option(bool, "static", "build static library instead of shared") ?? false;
+    const static = b.option(bool, "static", "build static library instead of shared") orelse false;
 
     const lib_cflags = [][]const u8 {
         "-std=c99",
@@ -22,22 +22,20 @@ pub fn build(b: &Builder) {
     };
 
     const lib = if (static)
-        b.addCStaticLibrary("laxjson")
+        b.addStaticLibrary("laxjson", null)
     else
-        b.addCSharedLibrary("laxjson", b.version(1, 0, 5));
+        b.addSharedLibrary("laxjson", null, b.version(1, 0, 5));
     lib.setBuildMode(mode);
-    lib.addCompileFlags(lib_cflags);
-    lib.addSourceFile("src/laxjson.c");
+    lib.addCSourceFile("src/laxjson.c", lib_cflags);
     lib.linkSystemLibrary("c");
     lib.addIncludeDir("include");
     b.default_step.dependOn(&lib.step);
 
     // examples
 
-    const token_list_exe = b.addCExecutable("token_list");
+    const token_list_exe = b.addExecutable("token_list", null);
     token_list_exe.setBuildMode(mode);
-    token_list_exe.addCompileFlags(example_cflags);
-    token_list_exe.addSourceFile("example/token_list.c");
+    token_list_exe.addCSourceFile("example/token_list.c", example_cflags);
     token_list_exe.linkLibrary(lib);
     token_list_exe.addIncludeDir("include");
 
@@ -45,10 +43,9 @@ pub fn build(b: &Builder) {
 
     // test
 
-    const primitives_test_exe = b.addCExecutable("primitives_test");
+    const primitives_test_exe = b.addExecutable("primitives_test", null);
     primitives_test_exe.setBuildMode(mode);
-    primitives_test_exe.addCompileFlags(example_cflags);
-    primitives_test_exe.addSourceFile("test/primitives.c");
+    primitives_test_exe.addCSourceFile("test/primitives.c", example_cflags);
     primitives_test_exe.addIncludeDir("include");
     primitives_test_exe.linkLibrary(lib);
 
