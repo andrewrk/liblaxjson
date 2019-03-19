@@ -4,7 +4,7 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const static = b.option(bool, "static", "build static library instead of shared") orelse false;
 
-    const lib_cflags = [][]const u8 {
+    const lib_cflags = [][]const u8{
         "-std=c99",
         "-pedantic",
         "-Werror",
@@ -14,7 +14,7 @@ pub fn build(b: *Builder) void {
         "-Werror=missing-prototypes",
     };
 
-    const example_cflags = [][]const u8 {
+    const example_cflags = [][]const u8{
         "-std=c99",
         "-pedantic",
         "-Werror",
@@ -49,10 +49,8 @@ pub fn build(b: *Builder) void {
     primitives_test_exe.addIncludeDir("include");
     primitives_test_exe.linkLibrary(lib);
 
-    const run_test_cmd = b.addCommand(".", b.env_map,
-        [][]const u8{primitives_test_exe.getOutputPath()});
-    run_test_cmd.step.dependOn(&primitives_test_exe.step);
-    
+    const run_test_cmd = primitives_test_exe.run();
+
     const test_step = b.step("test", "Run the tests");
     test_step.dependOn(&run_test_cmd.step);
 
