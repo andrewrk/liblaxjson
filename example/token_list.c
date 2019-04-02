@@ -71,12 +71,14 @@ int main() {
         if ((err = lax_json_feed(context, amt_read, buf))) {
             fprintf(stderr, "Line %d, column %d: %s\n",
                     context->line, context->column, lax_json_str_err(err));
+            lax_json_destroy(context);
             return -1;
         }
     }
     if ((err = lax_json_eof(context))) {
         fprintf(stderr, "Line %d, column %d: %s\n",
                 context->line, context->column, lax_json_str_err(err));
+        lax_json_destroy(context);
         return -1;
     }
     lax_json_destroy(context);

@@ -145,3 +145,4 @@ Feel free to make a pull request adding to this list.
  * [rucksack](https://github.com/andrewrk/rucksack) - a texture packer and
    resource bundler
  * [Genesis](https://github.com/andrewrk/genesis) - digital audio workstation
+ * [lua-laxjson](https://github.com/sjnam/lua-laxjson) - Lua bindings
