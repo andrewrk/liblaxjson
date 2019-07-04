@@ -4,7 +4,7 @@ pub fn build(b: *Builder) void {
     const mode = b.standardReleaseOptions();
     const static = b.option(bool, "static", "build static library instead of shared") orelse false;
 
-    const lib_cflags = [][]const u8{
+    const lib_cflags = [_][]const u8{
         "-std=c99",
         "-pedantic",
         "-Werror",
@@ -14,7 +14,7 @@ pub fn build(b: *Builder) void {
         "-Werror=missing-prototypes",
     };
 
-    const example_cflags = [][]const u8{
+    const example_cflags = [_][]const u8{
         "-std=c99",
         "-pedantic",
         "-Werror",
@@ -29,7 +29,7 @@ pub fn build(b: *Builder) void {
     lib.addCSourceFile("src/laxjson.c", lib_cflags);
     lib.linkSystemLibrary("c");
     lib.addIncludeDir("include");
-    b.default_step.dependOn(&lib.step);
+    lib.install();
 
     // examples
 
@@ -54,7 +54,5 @@ pub fn build(b: *Builder) void {
     const test_step = b.step("test", "Run the tests");
     test_step.dependOn(&run_test_cmd.step);
 
-    // install
-    b.installArtifact(lib);
     b.installFile("include/laxjson.h", "include/laxjson.h");
 }
